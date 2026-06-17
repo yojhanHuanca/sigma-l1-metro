@@ -2,19 +2,34 @@
 
 A fully built travel booking app (Airbnb-style, guest side) designed to show you what a mature Tempo workspace looks like.
 
+## Where the demo PRDs & issues live (`demo-assets` branch)
+
+> **`main` intentionally has no `demo-assets/` folder.** The seed PRDs and
+> issues live on the dedicated permanent **[`demo-assets`](../../tree/demo-assets/demo-assets)**
+> branch instead.
+>
+> During onboarding, Tempo fetches that branch and seeds its
+> `demo-assets/{prds,issues}` into the cloud (the Docs and Issues tabs) — so
+> the agent working in your cloned workspace sees them as real cloud
+> docs/issues, **not** as duplicate markdown files sitting in the repo (which
+> previously confused the agent). Nothing needs to be auto-deleted from your
+> clone because `main` never carried them.
+>
+> To browse the raw seed markdown, check out the `demo-assets` branch.
+
 ## Start here
 
-Open `demo-assets/prds/tutorial/01-welcome.md`.
-
-Or open the kanban board and pin the **[Start here] Welcome** ticket.
+After onboarding, open the **[Start here] Welcome** doc in the Docs tab (seeded
+from `demo-assets/prds/tutorial/01-welcome.md`), or pin the **[Start here]
+Welcome** ticket on the kanban board.
 
 ## What's in this workspace
 
 | Surface | Count | Location |
 |---|---|---|
-| PRDs | 15 | `demo-assets/prds/` |
-| Issues | 8 | `demo-assets/issues/` |
-| Canvases | 7 | `designs/pages/` |
+| PRDs | 15 | `demo-assets/prds/` (on the `demo-assets` branch) |
+| Issues | 8 | `demo-assets/issues/` (on the `demo-assets` branch) |
+| Canvases | 14+ | `tempo/designs/canvases/` |
 | Pages | 7 | `src/pages/` |
 | Design system | 14 components | `src/design-system/` |
 
