@@ -24,10 +24,10 @@ import {
 import { SEED_CASES, SEED_NOTIFICATIONS } from "./seed";
 import { caseCodeFromSeq, nowISO, uid } from "./utils";
 
-const CASES_KEY = "sigma_l1_cases_v2";
-const NOTIF_KEY = "sigma_l1_notif_v2";
+const CASES_KEY = "sigma_l1_cases_v3";
+const NOTIF_KEY = "sigma_l1_notif_v3";
 const ROLE_KEY = "sigma_l1_role_v1";
-const SEQ_KEY = "sigma_l1_seq_v2";
+const SEQ_KEY = "sigma_l1_seq_v3";
 
 function load<T>(key: string, fallback: T): T {
   try {

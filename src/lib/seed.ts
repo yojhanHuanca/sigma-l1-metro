@@ -169,7 +169,7 @@ export const SEED_CASES: CaseFile[] = [
     description:
       "Operario observado sin casco y sin chaleco reflectivo en zona de vías durante jornada de mantenimiento nocturno.",
     observations: "Observación reportada por supervisor de turno.",
-    area: "operaciones",
+    area: "mantenimiento",
     station: "San Juan",
     location: "Zona de vías · acceso norte",
     date: daysAgo(8, 22, 45).slice(0, 10),
@@ -178,7 +178,7 @@ export const SEED_CASES: CaseFile[] = [
     stage: "ejecucion",
     reporter: "Sofía Erazo",
     reporterRole: "reportante",
-    assignee: AREA_HEADS.operaciones,
+    assignee: AREA_HEADS.mantenimiento,
     assigneeArea: "operaciones",
     evidence: [
       { id: uid("ev"), kind: "foto", name: "observacion_epp.jpg", size: "1.2 MB", at: daysAgo(8, 22, 50) },
@@ -199,10 +199,10 @@ export const SEED_CASES: CaseFile[] = [
       observations: "Coordinar con RR.HH. el padrón actualizado de personal nuevo.",
       updatedAt: daysAgo(5, 10, 0),
     },
-    actionPlan: { elaboratedBy: "Marcela Falcón", actionType: "Correctiva", description: "Plan de acción correctivo derivado de la investigación.", startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(7), estimatedTime: "7 días", priority: "media" as Priority, observations: "Coordinar con el jefe del área responsable.", sentToArea: "infraestructura", items: [
-        { id: uid("ai"), name: "Completar inducción de seguridad al personal nuevo", description: "Completar inducción de seguridad al personal nuevo", owner: AREA_HEADS.operaciones, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(-1), progress: 80, status: "en_progreso", comments: [] as string[] },
-        { id: uid("ai"), name: "Implementar checklist EPP en puntos de acceso", description: "Implementar checklist EPP en puntos de acceso", owner: AREA_HEADS.operaciones, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(1), progress: 60, status: "en_progreso", comments: [] as string[] },
-        { id: uid("ai"), name: "Charla de concientización al turno nocturno", description: "Charla de concientización al turno nocturno", owner: AREA_HEADS.operaciones, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(3), progress: 40, status: "en_progreso", comments: [] as string[] },
+    actionPlan: { elaboratedBy: "Marcela Falcón", actionType: "Correctiva", description: "Plan de acción correctivo derivado de la investigación.", startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(7), estimatedTime: "7 días", priority: "media" as Priority, observations: "Coordinar con el jefe del área responsable.", sentToArea: "mantenimiento", items: [
+        { id: uid("ai"), name: "Completar inducción de seguridad al personal nuevo", description: "Completar inducción de seguridad al personal nuevo", owner: AREA_HEADS.mantenimiento, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(-1), progress: 80, status: "en_progreso", comments: [] as string[] },
+        { id: uid("ai"), name: "Implementar checklist EPP en puntos de acceso", description: "Implementar checklist EPP en puntos de acceso", owner: AREA_HEADS.mantenimiento, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(1), progress: 60, status: "en_progreso", comments: [] as string[] },
+        { id: uid("ai"), name: "Charla de concientización al turno nocturno", description: "Charla de concientización al turno nocturno", owner: AREA_HEADS.mantenimiento, priority: "media" as Priority, startDate: daysAgo(3).slice(0, 10), dueDate: daysAhead(3), progress: 40, status: "en_progreso", comments: [] as string[] },
       ],
       submittedAt: daysAgo(4, 15, 0),
       reviewedAt: daysAgo(3, 9, 30),
