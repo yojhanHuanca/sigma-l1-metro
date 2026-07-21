@@ -6,6 +6,7 @@ import {
   BarChart3,
   Bell,
   User,
+  Users,
   ChevronDown,
   Home,
   Siren,
@@ -93,6 +94,7 @@ export function Sidebar() {
   ];
 
   const standalone: NavItem[] = [
+    { to: "/seguridad/usuarios", label: "Administración de Usuarios", icon: Users },
     { to: "/seguridad/notificaciones", label: "Notificaciones", icon: Bell, badge: alertCount },
     { to: "/seguridad/perfil", label: "Mi Perfil", icon: User },
   ];

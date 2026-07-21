@@ -19,15 +19,21 @@ import {
   type Priority,
   type Role,
   type Stage,
+  type SyncLog,
   type TimelineEvent,
+  type User,
+  type UserRole,
 } from "./types";
 import { SEED_CASES, SEED_NOTIFICATIONS } from "./seed";
+import { SEED_USERS, SEED_SYNC_LOGS, NEW_USERS_FROM_EXCEL } from "./seedUsers";
 import { caseCodeFromSeq, nowISO, uid } from "./utils";
 
 const CASES_KEY = "sigma_l1_cases_v4";
 const NOTIF_KEY = "sigma_l1_notif_v4";
 const ROLE_KEY = "sigma_l1_role_v1";
 const SEQ_KEY = "sigma_l1_seq_v4";
+const USERS_KEY = "sigma_l1_users_v1";
+const SYNC_KEY = "sigma_l1_sync_v1";
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -201,6 +207,13 @@ interface StoreValue {
   addTimelineComment: (caseId: string, comment: string) => void;
   notifySanction: (caseId: string, area: Area, sanction: string) => void;
 
+  // Administración de Usuarios
+  users: User[];
+  syncLogs: SyncLog[];
+  syncFromExcel: () => Promise<{ newCount: number; updatedCount: number; deactivatedCount: number; durationSec: number }>;
+  assignUserRole: (userId: string, role: UserRole) => void;
+  deactivateUser: (userId: string) => void;
+
   getCase: (id: string) => CaseFile | undefined;
   resetAll: () => void;
 }
@@ -214,11 +227,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(() => loadNotifs());
   const [role, setRoleState] = useState<Role | null>(() => load<Role | null>(ROLE_KEY, null));
   const [seq, setSeq] = useState<number>(() => load(SEQ_KEY, 15));
+  const [users, setUsers] = useState<User[]>(() => load<User[]>(USERS_KEY, SEED_USERS));
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>(() => load<SyncLog[]>(SYNC_KEY, SEED_SYNC_LOGS));
 
   useEffect(() => save(CASES_KEY, cases), [cases]);
   useEffect(() => save(NOTIF_KEY, notifications), [notifications]);
   useEffect(() => save(ROLE_KEY, role), [role]);
   useEffect(() => save(SEQ_KEY, seq), [seq]);
+  useEffect(() => save(USERS_KEY, users), [users]);
+  useEffect(() => save(SYNC_KEY, syncLogs), [syncLogs]);
 
   const pushNotification = useCallback(
     (n: Omit<Notification, "id" | "at" | "read"> & { at?: string }) => {
@@ -695,6 +712,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [mutate, pushNotification]
   );
 
+  // ─── Administración de Usuarios ────────────────────────────────────
+  const syncFromExcel = useCallback(async () => {
+    const start = Date.now();
+    // Simular lectura del Excel: marcar log en_proceso
+    const inProgressLog: SyncLog = {
+      id: uid("sync"),
+      at: nowISO(),
+      triggeredBy: SAFETY_USER.name,
+      newUsers: 0, updatedUsers: 0, deactivatedUsers: 0,
+      durationSec: 0, status: "en_proceso",
+    };
+    setSyncLogs((prev) => [inProgressLog, ...prev]);
+
+    // Simular tiempo de lectura (3.5s)
+    await new Promise((r) => setTimeout(r, 3500));
+
+    const now = nowISO();
+    const newCount = NEW_USERS_FROM_EXCEL.length;
+    const updatedCount = 2; // simulación: 2 actualizados
+    const deactivatedCount = 1; // simulación: 1 dado de baja
+
+    setUsers((prev) => {
+      const byCode = new Map(prev.map((u) => [u.code, u]));
+      // 1) Agregar nuevos
+      const newUsers: User[] = NEW_USERS_FROM_EXCEL.map((nu) => {
+        const initials = nu.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+        const colorIdx = parseInt(nu.code.replace(/\D/g, "")) % 8;
+        return {
+          ...nu,
+          id: `usr_${nu.code.toLowerCase().replace(/-/g, "")}`,
+          initials,
+          lastSyncAt: now,
+          avatarColor: ["#14814a", "#2c7be0", "#d99520", "#8a6fd6", "#d23a2c", "#0f6b3e", "#5fb4d4", "#c79a3e"][colorIdx],
+        };
+      });
+      // 2) Actualizar existentes (simular cambio de área en EMP-0011)
+      const updated = prev.map((u) => {
+        if (u.code === "EMP-0011") return { ...u, area: "mantenimiento" as Area, cargo: "Supervisora de Mantenimiento", lastSyncAt: now };
+        if (u.code === "EMP-0014") return { ...u, cargo: "Técnico Senior de Material Rodante", lastSyncAt: now };
+        return u;
+      });
+      const merged = [...updated, ...newUsers];
+      // 3) Dar de baja: EMP-0025 ya no aparece en el Excel
+      const finalUsers = merged.map((u) =>
+        u.code === "EMP-0025" ? { ...u, status: "inactivo" as const, lastSyncAt: now } : u
+      );
+      const uniqueByCode = new Map(finalUsers.map((u) => [u.code, u]));
+      return Array.from(uniqueByCode.values());
+    });
+
+    const durationSec = Math.round((Date.now() - start) / 1000);
+    setSyncLogs((prev) =>
+      prev.map((l) =>
+        l.id === inProgressLog.id
+          ? { ...l, newUsers: newCount, updatedUsers: updatedCount, deactivatedUsers: deactivatedCount, durationSec, status: "completada" }
+          : l
+      )
+    );
+
+    return { newCount, updatedCount, deactivatedCount, durationSec };
+  }, []);
+
+  const assignUserRole = useCallback((userId: string, userRole: UserRole) => {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, userRole, role: userRole === "jefe_area" ? "jefe" : userRole === "consulta" ? "reportante" : "seguridad" } : u)));
+  }, []);
+
+  const deactivateUser = useCallback((userId: string) => {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: "inactivo" as const } : u)));
+  }, []);
+
   const markNotificationRead = useCallback((id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
@@ -709,9 +796,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(CASES_KEY);
     localStorage.removeItem(NOTIF_KEY);
     localStorage.removeItem(SEQ_KEY);
+    localStorage.removeItem(USERS_KEY);
+    localStorage.removeItem(SYNC_KEY);
     setCases(SEED_CASES);
     setNotifications(SEED_NOTIFICATIONS);
     setSeq(15);
+    setUsers(SEED_USERS);
+    setSyncLogs(SEED_SYNC_LOGS);
   }, []);
 
   const value: StoreValue = {
@@ -747,6 +838,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     reopenCase,
     addTimelineComment,
     notifySanction,
+    users,
+    syncLogs,
+    syncFromExcel,
+    assignUserRole,
+    deactivateUser,
     getCase,
     resetAll,
   };

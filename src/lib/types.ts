@@ -188,13 +188,59 @@ export interface Notification {
   kind: "info" | "warning" | "critical" | "success";
 }
 
+export type UserRole =
+  | "administrador"
+  | "analista_so"
+  | "supervisor"
+  | "jefe_area"
+  | "responsable_plan"
+  | "consulta";
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  administrador: "Administrador",
+  analista_so: "Analista Seguridad Operativa",
+  supervisor: "Supervisor",
+  jefe_area: "Jefe de Área",
+  responsable_plan: "Responsable del Plan",
+  consulta: "Consulta",
+};
+
 export interface User {
+  id: string;
+  code: string; // Código del trabajador (EMP-0001)
   name: string;
   role: Role;
+  userRole: UserRole;
   area?: Area;
+  cargo: string;
   email: string;
+  phone?: string;
   initials: string;
+  status: "activo" | "inactivo";
+  hiredAt: string; // Fecha de ingreso
+  lastSyncAt: string; // Última sincronización
+  avatarColor?: string;
 }
+
+export interface SyncLog {
+  id: string;
+  at: string;
+  triggeredBy: string; // "Sistema" o nombre del admin
+  newUsers: number;
+  updatedUsers: number;
+  deactivatedUsers: number;
+  durationSec: number;
+  status: "completada" | "en_proceso";
+}
+
+export const USER_ROLE_TONE: Record<UserRole, "brand" | "info" | "warning" | "neutral" | "critical" | "success"> = {
+  administrador: "critical",
+  analista_so: "brand",
+  supervisor: "info",
+  jefe_area: "warning",
+  responsable_plan: "success",
+  consulta: "neutral",
+};
 
 export const STATIONS: string[] = [
   "San Juan",

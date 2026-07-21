@@ -15,6 +15,7 @@ import { CaseFile } from "@/pages/seguridad/CaseFile";
 import { KPIs } from "@/pages/seguridad/KPIs";
 import { Estadisticas } from "@/pages/seguridad/Estadisticas";
 import { ExportPage } from "@/pages/seguridad/ExportPage";
+import { UsersModule } from "@/pages/seguridad/UsersModule";
 import { SeguridadNotifications } from "@/pages/seguridad/SeguridadNotifications";
 import { Profile } from "@/pages/seguridad/Profile";
 
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/seguridad/kpis" element={<RequireRole role="seguridad"><KPIs /></RequireRole>} />
           <Route path="/seguridad/estadisticas" element={<RequireRole role="seguridad"><Estadisticas /></RequireRole>} />
           <Route path="/seguridad/exportar" element={<RequireRole role="seguridad"><ExportPage /></RequireRole>} />
+          <Route path="/seguridad/usuarios" element={<RequireRole role="seguridad"><UsersModule /></RequireRole>} />
           <Route path="/seguridad/notificaciones" element={<RequireRole role="seguridad"><SeguridadNotifications /></RequireRole>} />
           <Route path="/seguridad/perfil" element={<RequireRole role="seguridad"><Profile /></RequireRole>} />
 
