@@ -1,11 +1,11 @@
 {
   "scripts": {
     "install": "npm install && npm install --prefix ..",
-    "start": "npm run dev"
+    "start": "node node_modules/vite/bin/vite.js"
   },
   "apps": [
     {
-      "appStart": "npx vite --port=${PORT} --strictPort"
+      "appStart": "node ./node_modules/vite/bin/vite.js --port=${PORT} --strictPort"
     }
   ]
 }

@@ -1,68 +1,46 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "ghost"
-  | "destructive"
-  | "outline-solid"
-  | "ink";
-export type ButtonSize = "sm" | "md" | "lg";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "subtle";
+type Size = "sm" | "md" | "lg" | "icon";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  loading?: boolean;
+  variant?: Variant;
+  size?: Size;
 }
 
-/**
- * Button — Airbnb-style.
- *  primary  → coral pink with gradient on hover
- *  ink      → dark grey/black, used for secondary CTAs and modals
- *  outline  → white with grey border (standard secondary)
- *  ghost    → transparent until hover (used for inline links)
- */
-const variantClasses: Record<ButtonVariant, string> = {
+const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-accent hover:bg-accent-hover active:bg-accent-press text-white shadow-xs hover:shadow-sm",
-  ink:
-    "bg-ink hover:bg-ink-soft active:bg-black text-white",
+    "bg-brand-700 text-white shadow-sm hover:bg-brand-800 active:bg-brand-900 disabled:bg-brand-700/40",
   secondary:
-    "bg-paper-warm hover:bg-paper-dark text-ink",
-  ghost:
-    "bg-transparent hover:bg-paper-warm text-ink",
-  destructive:
-    "bg-ink hover:bg-ink-soft text-white",
+    "bg-brand-50 text-brand-800 hover:bg-brand-100 active:bg-brand-200 disabled:bg-brand-50/60",
   outline:
-    "bg-transparent text-ink border border-paper-deep hover:border-ink hover:bg-paper-warm/50",
+    "bg-white text-ink border border-line-strong hover:bg-surface-2 hover:border-ink-faint active:bg-surface-3",
+  ghost: "bg-transparent text-ink-soft hover:bg-surface-2 hover:text-ink active:bg-surface-3",
+  danger:
+    "bg-critical text-white shadow-sm hover:bg-critical/90 active:bg-critical-ink disabled:bg-critical/40",
+  subtle: "bg-surface-2 text-ink-soft hover:bg-surface-3 active:bg-line-soft",
 };
 
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-4 text-[14px] rounded-lg gap-1.5 font-medium",
-  md: "h-11 px-5 text-[14px] rounded-lg gap-2 font-semibold",
-  lg: "h-12 px-6 text-[15px] rounded-lg gap-2 font-semibold",
+const SIZES: Record<Size, string> = {
+  sm: "h-8 px-3 text-[12.5px] gap-1.5 rounded-lg",
+  md: "h-10 px-4 text-[13.5px] gap-2 rounded-lg",
+  lg: "h-11 px-5 text-[14px] gap-2 rounded-xl",
+  icon: "h-9 w-9 rounded-lg",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    { className, variant = "primary", size = "md", loading, disabled, children, ...props },
-    ref,
-  ) => {
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || loading}
-        className={cn("inline-flex items-center justify-center", "transition-[background-color,color,box-shadow,transform] duration-150 ease-out", "active:scale-[0.98]", "disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100", "select-none whitespace-nowrap", variantClasses[variant], sizeClasses[size], className, "w-full")}
-        {...props}
-      >
-        {loading ? (
-          <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-        ) : null}
-        {children}
-      </button>
-    );
-  },
+  ({ className, variant = "primary", size = "md", ...props }, ref) => (
+    <button
+      ref={ref}
+      className={cn(
+        "inline-flex items-center justify-center font-medium whitespace-nowrap transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none",
+        SIZES[size],
+        VARIANTS[variant],
+        className
+      )}
+      {...props}
+    />
+  )
 );
-
 Button.displayName = "Button";

@@ -18,26 +18,16 @@
 // *.canvas.tsx files.
 // ───────────────────────────────────────────────────────────────────────────
 
-import type { TempoPage, TempoStoryboard } from "tempo-sdk";
+import type { TempoStoryboard } from "tempo-sdk";
 import Storyboard1 from "./Storyboard1";
+import { Canvas, Storyboard } from "tempo-sdk/canvas";
 
 // Example — import a REAL component from your app, which lives OUTSIDE tempo/.
 // Your app is at the project root, so climb out of tempo/ to reach it. From
 // tempo/designs/canvases/template-canvas/ that is four levels up:
 //   import { Button } from "../../../../src/components/Button";
 
-const page: TempoPage = {
-  name: "Template",
-};
-
-export default page;
-
 // A canvas-local storyboard: isolated, UI-only, not used by your app.
-export const Example: TempoStoryboard = {
-  render: () => <Storyboard1 />,
-  name: "Storyboard 1 (canvas-local example)",
-  layout: { x: 0, y: 0, width: 480, height: 320 },
-};
 
 // Example of projecting a REAL component from your app onto the canvas.
 // Uncomment after adding the import above and having that component in your app:
@@ -46,3 +36,16 @@ export const Example: TempoStoryboard = {
 //   name: "Button (from your app)",
 //   layout: { x: 0, y: 380, width: 240, height: 120 },
 // };
+
+export default function TemplateCanvas() {
+  return (
+    <Canvas name="Template">
+      <Storyboard
+        id="Example"
+        name="Storyboard 1 (canvas-local example)"
+        component={Storyboard1}
+        layout={{ x: 0, y: 0, width: 480, height: 320 }}
+      />
+    </Canvas>
+  );
+}

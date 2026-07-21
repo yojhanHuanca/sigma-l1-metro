@@ -1,47 +1,29 @@
 import { cn } from "@/lib/utils";
 
-type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
-
 interface AvatarProps {
-  src?: string;
-  alt: string;
-  size?: AvatarSize;
+  initials: string;
+  size?: "sm" | "md" | "lg";
+  tone?: "brand" | "ink";
   className?: string;
-  /** Reserved for back-compat. No visual treatment in the Airbnb style. */
-  framed?: boolean;
 }
 
-const sizeClasses: Record<AvatarSize, string> = {
-  xs: "w-6 h-6 text-[10px]",
-  sm: "w-8 h-8 text-[11px]",
-  md: "w-10 h-10 text-[13px]",
-  lg: "w-14 h-14 text-[15px]",
-  xl: "w-20 h-20 text-[18px]",
+const SIZES = {
+  sm: "h-7 w-7 text-[10px]",
+  md: "h-9 w-9 text-[12px]",
+  lg: "h-11 w-11 text-[14px]",
 };
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-export function Avatar({ src, alt, size = "md", className }: AvatarProps) {
+export function Avatar({ initials, size = "md", tone = "brand", className }: AvatarProps) {
   return (
-    <div
+    <span
       className={cn(
-        "relative rounded-full overflow-hidden bg-paper-warm flex items-center justify-center shrink-0",
-        sizeClasses[size],
-        className,
+        "inline-grid place-items-center rounded-full font-semibold shrink-0",
+        SIZES[size],
+        tone === "brand" ? "bg-brand-100 text-brand-800" : "bg-surface-2 text-ink-soft",
+        className
       )}
     >
-      {src ? (
-        <img src={src} alt={alt} className="w-full h-full object-cover" loading="lazy" />
-      ) : (
-        <span className="font-medium text-ink-soft">{getInitials(alt)}</span>
-      )}
-    </div>
+      {initials}
+    </span>
   );
 }

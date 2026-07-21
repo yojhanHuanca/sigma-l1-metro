@@ -1,53 +1,60 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import { Navbar } from "@/design-system/layout/Navbar";
-import { Container } from "@/design-system/layout/Container";
-import { Button } from "@/design-system/primitives/Button";
-import { HomePage } from "@/pages/HomePage";
-import { SearchPage } from "@/pages/SearchPage";
-import { ListingDetailPage } from "@/pages/ListingDetailPage";
-import { TripsPage } from "@/pages/TripsPage";
-import { TripDetailPage } from "@/pages/TripDetailPage";
-import { MessagesPage } from "@/pages/MessagesPage";
-import { WishlistsPage } from "@/pages/WishlistsPage";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { type ReactNode } from "react";
+import { StoreProvider, useStore } from "@/lib/store";
+import { RoleSelectPage } from "@/pages/RoleSelectPage";
+import { ReportanteHome } from "@/pages/reportante/ReportanteHome";
+import { NewReportWizard } from "@/pages/reportante/NewReportWizard";
+import { MyReports } from "@/pages/reportante/MyReports";
+import { ReportanteNotifications } from "@/pages/reportante/ReportanteNotifications";
+import { JefeHome } from "@/pages/jefe/JefeHome";
+import { Dashboard } from "@/pages/seguridad/Dashboard";
+import { DecisionCenter } from "@/pages/seguridad/DecisionCenter";
+import { Alerts } from "@/pages/seguridad/Alerts";
+import { CaseList } from "@/pages/seguridad/CaseList";
+import { CaseFile } from "@/pages/seguridad/CaseFile";
+import { KPIs } from "@/pages/seguridad/KPIs";
+import { Estadisticas } from "@/pages/seguridad/Estadisticas";
+import { ExportPage } from "@/pages/seguridad/ExportPage";
+import { SeguridadNotifications } from "@/pages/seguridad/SeguridadNotifications";
+import { Profile } from "@/pages/seguridad/Profile";
 
-function NotFound() {
-  return (
-    <Container className="py-32 text-center max-w-md">
-      <p className="text-[80px] font-semibold text-ink leading-none mb-6">404</p>
-      <p className="text-[24px] font-semibold text-ink mb-2">
-        We can't seem to find that page
-      </p>
-      <p className="text-[14px] text-ink-quiet mb-8">
-        It may have moved, or the link is broken.
-      </p>
-      <div className="flex items-center justify-center gap-3">
-        <Link to="/">
-          <Button>Back to home</Button>
-        </Link>
-        <Link to="/search">
-          <Button variant="outline">Browse stays</Button>
-        </Link>
-      </div>
-    </Container>
-  );
+function RequireRole({ role, children }: { role: "reportante" | "seguridad" | "jefe"; children: ReactNode }) {
+  const { role: current } = useStore();
+  const location = useLocation();
+  if (current !== role) {
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
+  return <>{children}</>;
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
-      <main className="bg-white min-h-screen">
+    <StoreProvider>
+      <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/listing/:id" element={<ListingDetailPage />} />
-          <Route path="/trips" element={<TripsPage />} />
-          <Route path="/trips/:id" element={<TripDetailPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/wishlists" element={<WishlistsPage />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<RoleSelectPage />} />
+
+          <Route path="/reportante" element={<RequireRole role="reportante"><ReportanteHome /></RequireRole>} />
+          <Route path="/reportante/nuevo" element={<RequireRole role="reportante"><NewReportWizard /></RequireRole>} />
+          <Route path="/reportante/mis-reportes" element={<RequireRole role="reportante"><MyReports /></RequireRole>} />
+          <Route path="/reportante/notificaciones" element={<RequireRole role="reportante"><ReportanteNotifications /></RequireRole>} />
+
+          <Route path="/jefe" element={<RequireRole role="jefe"><JefeHome /></RequireRole>} />
+
+          <Route path="/seguridad" element={<RequireRole role="seguridad"><Dashboard /></RequireRole>} />
+          <Route path="/seguridad/decisiones" element={<RequireRole role="seguridad"><DecisionCenter /></RequireRole>} />
+          <Route path="/seguridad/alertas" element={<RequireRole role="seguridad"><Alerts /></RequireRole>} />
+          <Route path="/seguridad/casos" element={<RequireRole role="seguridad"><CaseList /></RequireRole>} />
+          <Route path="/seguridad/casos/:id" element={<RequireRole role="seguridad"><CaseFile /></RequireRole>} />
+          <Route path="/seguridad/kpis" element={<RequireRole role="seguridad"><KPIs /></RequireRole>} />
+          <Route path="/seguridad/estadisticas" element={<RequireRole role="seguridad"><Estadisticas /></RequireRole>} />
+          <Route path="/seguridad/exportar" element={<RequireRole role="seguridad"><ExportPage /></RequireRole>} />
+          <Route path="/seguridad/notificaciones" element={<RequireRole role="seguridad"><SeguridadNotifications /></RequireRole>} />
+          <Route path="/seguridad/perfil" element={<RequireRole role="seguridad"><Profile /></RequireRole>} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
-    </BrowserRouter>
+      </BrowserRouter>
+    </StoreProvider>
   );
 }
