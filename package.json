@@ -1,11 +1,11 @@
 {
-  "name": "tempo-tutorial",
+  "name": "sigma-l1",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
@@ -36,6 +36,5 @@
     "tempo-sdk": "latest",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"
-  },
-  "packageManager": "pnpm@10.32.1"
+  }
 }
