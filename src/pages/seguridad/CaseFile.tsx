@@ -469,6 +469,7 @@ function PendingInfoStage({ c }: { c: Store["cases"][number] }) {
 
 /* ─── ETAPA 3 — Investigación (SO) ─── */
 function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
+  const [editMode, setEditMode] = useState(!c.investigation);
   const [inv, setInv] = useState<Investigation>(
     c.investigation ?? { findings: "", rootCause: "", technicalDescription: "", conclusions: "", observations: "", updatedAt: "" }
   );
@@ -483,10 +484,17 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
     store.addInvestigationEvidence(c.id, { id: `ev_${Math.random().toString(36).slice(2, 9)}`, kind, name: name.replace(/(\.\w+)$/, `_${c.evidence.length + 1}$1`), size, at: new Date().toISOString() });
   };
 
-  if (c.investigation) {
+  if (c.investigation && !editMode) {
     return (
       <div className="space-y-4">
-        <StageSection title="Investigación registrada" subtitle="Hallazgos, causa raíz y conclusiones registrados por Seguridad Operativa." icon={<Microscope className="h-5 w-5" />} action={<Pill tone="brand" dot>Completado</Pill>}>
+        <StageSection title="Investigación registrada" subtitle="Hallazgos, causa raíz y conclusiones registrados por Seguridad Operativa." icon={<Microscope className="h-5 w-5" />} action={
+          <div className="flex items-center gap-2">
+            <Pill tone="brand" dot>Completado</Pill>
+            <Button variant="outline" size="sm" onClick={() => { setInv(c.investigation!); setEditMode(true); }}>
+              <FileSearch className="h-4 w-4" /> Editar
+            </Button>
+          </div>
+        }>
           <InvDisplay inv={c.investigation} />
         </StageSection>
         <ResponsiblesAndWorkers c={c} store={store} readOnly />
@@ -870,8 +878,9 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [decision, setDecision] = useState<"aprobado" | "rechazado">("aprobado");
   const [note, setNote] = useState("");
+  const [editPlanMode, setEditPlanMode] = useState(false);
 
-  if (plan?.reviewDecision === "aprobado") {
+  if (plan?.reviewDecision === "aprobado" && !editPlanMode) {
     return (
       <div className="space-y-4">
         {c.investigation && (
@@ -879,7 +888,14 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
             <InvDisplay inv={c.investigation} />
           </StageSection>
         )}
-        <StageSection title="Plan de Acción aprobado" subtitle="El plan fue aprobado por Seguridad Operativa. Inicie la ejecución." icon={<ClipboardList className="h-5 w-5" />} action={<Pill tone="brand" dot>Aprobado</Pill>}>
+        <StageSection title="Plan de Acción aprobado" subtitle="El plan fue aprobado por Seguridad Operativa. Inicie la ejecución." icon={<ClipboardList className="h-5 w-5" />} action={
+          <div className="flex items-center gap-2">
+            <Pill tone="brand" dot>Aprobado</Pill>
+            <Button variant="outline" size="sm" onClick={() => setEditPlanMode(true)}>
+              <FileSearch className="h-4 w-4" /> Editar plan
+            </Button>
+          </div>
+        }>
           <PlanDisplay c={c} />
           <div className="mt-4 pt-4 border-t border-line-soft rounded-xl bg-brand-50 border border-brand-200 p-4 flex items-center justify-between gap-3 -mx-1">
             <div className="flex items-center gap-2.5">
@@ -894,6 +910,27 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
             </div>
           </div>
         </StageSection>
+      </div>
+    );
+  }
+
+  // Modo edición del plan (reabrió un caso con plan aprobado)
+  if (editPlanMode && plan) {
+    return (
+      <div className="space-y-4">
+        {c.investigation && (
+          <StageSection title="Investigación" subtitle="Hallazgos y causa raíz." icon={<Microscope className="h-5 w-5" />}>
+            <InvDisplay inv={c.investigation} />
+          </StageSection>
+        )}
+        <StageSection title="Editar Plan de Acción" subtitle="Modifique el plan y vuelva a enviarlo al jefe del área." icon={<ClipboardList className="h-5 w-5" />} action={
+          <Button variant="ghost" size="sm" onClick={() => setEditPlanMode(false)}>
+            <X className="h-4 w-4" /> Cancelar edición
+          </Button>
+        }>
+          <PlanForm c={c} store={store} onSubmitted={() => setEditPlanMode(false)} />
+        </StageSection>
+        <ResponsiblesAndWorkers c={c} store={store} readOnly />
       </div>
     );
   }
