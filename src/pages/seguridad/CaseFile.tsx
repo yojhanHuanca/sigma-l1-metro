@@ -38,6 +38,7 @@ import {
   UserX,
   UserCheck,
   Briefcase,
+  Info,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SegShell } from "@/design-system/layout/SegShell";
@@ -279,7 +280,7 @@ function CenterPanel({ c, store }: { c: Store["cases"][number]; store: Store }) 
     case "verificacion":
       return <VerificationStage c={c} store={store} />;
     case "cierre":
-      return <ClosedStage c={c} />;
+      return <ClosedStage c={c} store={store} />;
     case "rechazado":
       return <RejectedStage c={c} />;
     default:
@@ -1345,7 +1346,7 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
 }
 
 /* ─── ETAPA 7 — Cierre ─── */
-function ClosedStage({ c }: { c: Store["cases"][number] }) {
+function ClosedStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
   const createdAt = new Date(c.createdAt);
   const closedAt = new Date(c.closedAt ?? c.createdAt);
   const totalDays = Math.max(1, Math.round((closedAt.getTime() - createdAt.getTime()) / 86400000));
@@ -1357,6 +1358,10 @@ function ClosedStage({ c }: { c: Store["cases"][number] }) {
     + (c.actionPlan?.items.reduce((acc, it) => acc + it.comments.length, 0) ?? 0)
     + (c.execution?.updates.length ?? 0);
 
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [targetStage, setTargetStage] = useState<Stage>("verificacion");
+  const [reason, setReason] = useState("");
+
   const summary = [
     { label: "Tiempo total de atención", value: totalDays >= 1 ? `${totalDays} días` : `${totalHours} h`, icon: Clock },
     { label: "Área responsable", value: AREA_LABELS[c.assigneeArea ?? c.area], icon: Building2 },
@@ -1366,8 +1371,37 @@ function ClosedStage({ c }: { c: Store["cases"][number] }) {
     { label: "Comentarios registrados", value: `${commentCount}`, icon: Activity },
   ];
 
+  const canReopen = reason.trim().length >= 5;
+
+  const doReopen = () => {
+    if (canReopen) {
+      store.reopenCaseWithReason(c.id, targetStage, reason.trim());
+      setReopenOpen(false);
+      setReason("");
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Banner de alerta — Reabrir caso */}
+      <Card className="border-warning/30 bg-warning-soft/40 p-4">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-warning/15 text-warning-ink grid place-items-center shrink-0">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[13.5px] font-semibold text-ink">¿El caso fue cerrado incorrectamente?</p>
+            <p className="text-[12.5px] text-ink-soft mt-0.5">
+              Si la investigación, el plan de acción o cualquier información del caso no fue elaborada de manera correcta,
+              puede reabrir el expediente y editarlo. Seleccione a qué etapa desea volver.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="border-warning/40 text-warning-ink hover:bg-warning-soft shrink-0" onClick={() => setReopenOpen(true)}>
+            <CornerUpLeft className="h-4 w-4" /> Reabrir y Editar
+          </Button>
+        </div>
+      </Card>
+
       <StageSection title="Caso cerrado" subtitle="El expediente completo fue archivado por Seguridad Operativa." icon={<CheckCircle2 className="h-5 w-5" />} action={<Pill tone="neutral" dot>Cerrado {formatDate(c.closedAt ?? "")}</Pill>}>
         <div className="rounded-xl bg-brand-50 border border-brand-200 p-5 text-center">
           <div className="h-12 w-12 rounded-full bg-brand-700 text-white grid place-items-center mx-auto"><CheckCircle2 className="h-6 w-6" /></div>
@@ -1411,6 +1445,62 @@ function ClosedStage({ c }: { c: Store["cases"][number] }) {
           </div>
         )}
       </StageSection>
+
+      {/* Modal: Reabrir caso */}
+      <Modal
+        open={reopenOpen}
+        onClose={() => setReopenOpen(false)}
+        title="Reabrir caso para edición"
+        subtitle={`${c.id} · seleccione la etapa a la que desea volver`}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReopenOpen(false)}>Cancelar</Button>
+            <Button variant="danger" onClick={doReopen} disabled={!canReopen}>
+              <CornerUpLeft className="h-4 w-4" /> Reabrir caso
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg bg-warning-soft border border-warning/30 p-4 flex items-start gap-2.5">
+            <AlertTriangle className="h-5 w-5 text-warning-ink shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[13px] font-semibold text-ink">Reapertura de expediente</p>
+              <p className="text-[12.5px] text-ink-soft mt-1">
+                Al reabrir el caso, el estado cambiará de "Cerrado" a la etapa que seleccione.
+                Se registrará en el historial quién reabrió el caso, cuándo y por qué motivo.
+                Toda la información anterior se conserva.
+              </p>
+            </div>
+          </div>
+
+          <Field label="Etapa a la que desea volver" required>
+            <Select value={targetStage} onChange={(e) => setTargetStage(e.target.value as Stage)}>
+              <option value="verificacion">Verificación — corregir la verificación final</option>
+              <option value="ejecucion">Ejecución — corregir avances o actividades</option>
+              <option value="plan_accion">Plan de Acción — corregir o ajustar el plan</option>
+              <option value="investigacion">Investigación — corregir hallazgos o causa raíz</option>
+              <option value="evaluacion">Evaluación — corregir la evaluación del caso</option>
+              <option value="recepcion">Recepción — revisar desde el inicio</option>
+            </Select>
+          </Field>
+
+          <Field label="Motivo de la reapertura" required hint="Mínimo 5 caracteres — este motivo quedará registrado en el historial">
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={4}
+              placeholder="Explique por qué reabre el caso. Ej: La investigación no identificó la causa raíz correcta. El plan de acción no contempló todas las acciones necesarias. Se detectó información incompleta en el expediente…"
+            />
+          </Field>
+
+          <div className="rounded-lg bg-info-soft border border-info/20 p-3 text-[12px] text-info-ink flex items-start gap-2">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>El caso volverá a la etapa seleccionada y podrá editar la información correspondiente. El historial completo se conserva y la reapertura queda registrada con fecha, usuario y motivo.</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

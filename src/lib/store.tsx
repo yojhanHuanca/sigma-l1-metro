@@ -224,6 +224,7 @@ interface StoreValue {
   closeCase: (caseId: string, note?: string) => void;
   keepPending: (caseId: string) => void;
   reopenCase: (caseId: string) => void;
+  reopenCaseWithReason: (caseId: string, targetStage: Stage, reason: string) => void;
 
   // Generales
   addTimelineComment: (caseId: string, comment: string) => void;
@@ -703,6 +704,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [mutate]
   );
 
+  const reopenCaseWithReason = useCallback(
+    (caseId: string, targetStage: Stage, reason: string) => {
+      const stageLabels: Record<string, string> = {
+        recepcion: "Recepción",
+        evaluacion: "Evaluación",
+        investigacion: "Investigación",
+        plan_accion: "Plan de Acción",
+        ejecucion: "Ejecución",
+        verificacion: "Verificación",
+      };
+      mutate(caseId, (c) =>
+        pushTimeline(
+          { ...c, stage: targetStage, closedAt: undefined },
+          {
+            kind: "reapertura",
+            actor: SAFETY_USER.name,
+            actorRole: "seguridad",
+            title: `Caso reabierto — vuelve a ${stageLabels[targetStage] ?? targetStage}`,
+            detail: `Motivo de la reapertura: ${reason}. El caso fue reabierto para corregir o completar información.`,
+          }
+        )
+      );
+      pushNotification({
+        caseId,
+        title: "Caso reabierto para edición",
+        body: `${caseId} reabierto por Seguridad Operativa. Motivo: ${reason.slice(0, 60)}.`,
+        audience: "seguridad",
+        kind: "warning",
+      });
+    },
+    [mutate, pushNotification]
+  );
+
   // ─── Generales ──────────────────────────────────────────────────────
   const respondInfoRequest = useCallback(
     (caseId: string, response: string) => {
@@ -959,6 +993,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     closeCase,
     keepPending,
     reopenCase,
+    reopenCaseWithReason,
     addTimelineComment,
     notifySanction,
     users,
