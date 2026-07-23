@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { type ReactNode } from "react";
+import { ErrorBoundary } from "@/design-system/primitives/ErrorBoundary";
 import { StoreProvider, useStore } from "@/lib/store";
 import { AdminStoreProvider, useAdminStore } from "@/lib/adminStore";
 import { RoleSelectPage } from "@/pages/RoleSelectPage";
@@ -47,9 +48,10 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <AdminStoreProvider>
-        <BrowserRouter>
+    <ErrorBoundary>
+      <StoreProvider>
+        <AdminStoreProvider>
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<RoleSelectPage />} />
 
@@ -87,6 +89,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </AdminStoreProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }
