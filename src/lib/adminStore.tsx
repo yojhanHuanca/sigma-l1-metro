@@ -20,7 +20,7 @@ import type {
   RollingStockSeries,
   SystemConfig,
 } from "./adminTypes";
-import { FULL_PERMISSIONS } from "./adminTypes";
+import { FULL_PERMISSIONS, DEFAULT_PERMISSIONS } from "./adminTypes";
 import { uid, nowISO } from "./utils";
 import type { Area } from "./types";
 
