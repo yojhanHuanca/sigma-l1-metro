@@ -1,0 +1,269 @@
+# PRESENTACIÓN DEL PERFIL JEFE DE ÁREA - SIGMA L1
+## Sistema de Gestión de Seguridad Operativa
+
+---
+
+### RESUMEN EJECUTIVO
+
+El perfil de **Jefe de Área** en el sistema SIGMA L1 ha sido completamente optimizado para proporcionar una experiencia de gestión operativa eficiente y profesional. Este perfil permite a los responsables de cada área funcional (Mantenimiento, Operaciones, SSOMA, etc.) gestionar de forma autónoma los planes de acción asignados a su área, con herramientas específicas diseñadas para maximizar su productividad y responsabilidad.
+
+---
+
+### CARACTERÍSTICAS PRINCIPALES DEL PERFIL
+
+#### 1. DASHBOARD PERSONALIZADO DEL ÁREA
+**Nueva funcionalidad implementada**
+
+El jefe de área accede a un **Centro de Comando Operativo** personalizado que muestra exclusivamente la información relevante a su área:
+
+- **Resumen de métricas principales**: Planes activos, por aprobar, actividades vencientes, planes completados
+- **Alertas urgentes en tiempo real**: Actividades vencidas, planes pendientes de aprobación
+- **Actividades de la semana**: Vista de las próximas 7 días con prioridades
+- **KPIs específicos del área**: Cumplimiento SLA, tiempo de respuesta, tasa de resolución
+- **Casos pendientes de aprobación**: Lista de planes que requieren revisión inmediata
+
+**Beneficio**: El jefe de área tiene visión inmediata de su situación sin navegar por todo el sistema, permitiendo toma de decisiones rápida y priorización efectiva.
+
+#### 2. GESTIÓN DE PLANES DE ACCIÓN
+**Funcionalidades existentes mejoradas**
+
+- **Recepción de planes**: Notificación automática cuando se asigna un plan a su área
+- **Aprobación inteligente**: Sistema de alertas con tiempo límite de 48 horas
+- **Segundo responsable**: Posibilidad de asignar un trabajador adicional del área
+- **Visualización completa**: Acceso a todos los detalles del plan, actividades y plazos
+
+**Beneficio**: Flujo de trabajo optimizado con recordatorios automáticos y gestión de recursos flexible.
+
+#### 3. EJECUCIÓN DE ACTIVIDADES
+**Funcionalidades existentes mejoradas**
+
+- **Registro de avances**: Documentación del progreso de cada actividad
+- **Marcado de completadas**: Indicación visual de actividades finalizadas
+- **Adjuntar evidencias**: Subida de fotos, videos y documentos como prueba
+- **Progreso general**: Barra de progreso visual del plan completo
+
+**Beneficio**: Control total sobre la ejecución con documentación completa y trazabilidad.
+
+#### 4. GESTIÓN DE PLAZOS Y AMPLIACIONES
+**Funcionalidades existentes mejoradas**
+
+- **Solicitud de ampliación**: Proceso formal para extender plazos
+- **Justificación detallada**: Motivo y nueva fecha solicitada
+- **Alertas de vencimiento**: Notificaciones de actividades próximas a vencer
+- **Indicadores de urgencia**: Visualización de tiempo restante
+
+**Beneficio**: Gestión proactiva de plazos con procesos formales para extensiones.
+
+---
+
+### NUEVAS FUNCIONALIDADES IMPLEMENTADAS
+
+#### Dashboard Específico para Jefe de Área
+**Estado**: ✅ Implementado
+**Componente**: `AreaHeadDashboard.tsx`
+
+**Características**:
+- Header personalizado con nombre del área y fecha actual
+- Indicador de SLA del área en tiempo real
+- 4 métricas principales con tendencias:
+  - Planes Activos (en ejecución)
+  - Por Aprobar (requieren atención)
+  - Vencen Esta Semana (actividades próximas)
+  - Completados (planes finalizados)
+- Sección de alertas urgentes:
+  - Actividades vencidas (alerta crítica)
+  - Planes por aprobar (alerta warning)
+- Vista de actividades de la semana:
+  - Lista de próximas actividades
+  - Días restantes para cada actividad
+  - Indicadores de prioridad
+- KPIs específicos del área:
+  - Cumplimiento SLA (objetivo ≥85%)
+  - Tiempo de respuesta promedio
+  - Tasa de resolución
+  - Total de casos gestionados
+- Lista de planes pendientes de aprobación:
+  - Título del caso
+  - Fecha de envío
+  - Prioridad
+
+**Beneficio para el usuario**: El jefe de área tiene toda la información relevante en una sola pantalla, sin necesidad de navegar por múltiples secciones del sistema.
+
+---
+
+### FLUJO DE TRABAJO OPTIMIZADO
+
+#### 1. Recepción de Plan de Acción
+```
+1. SO elabora plan → 2. Sistema notifica al jefe → 3. Jefe recibe alerta → 4. Revisa en dashboard
+```
+
+#### 2. Aprobación del Plan
+```
+1. Jefe accede dashboard → 2. Ve plan en "Por Aprobar" → 3. Revisa detalles → 4. Aprueba (48h límite)
+```
+
+#### 3. Ejecución de Actividades
+```
+1. Jefe ve actividades semanales → 2. Asigna recursos → 3. Registra avances → 4. Adjunta evidencias
+```
+
+#### 4. Cierre del Plan
+```
+1. Actividades completadas → 2. Jefe solicita verificación → 3. SO verifica → 4. Caso cerrado
+```
+
+---
+
+### INDICADORES DE DESEMPEÑO DEL ÁREA
+
+El sistema proporciona métricas específicas para que cada jefe de área pueda medir su desempeño:
+
+#### KPIs Principales
+- **Cumplimiento SLA**: Porcentaje de casos resueltos dentro del tiempo establecido
+- **Tiempo de Respuesta**: Días promedio para aprobar planes de acción
+- **Tasa de Resolución**: Porcentaje de planes completados vs. total asignados
+- **Total Gestionados**: Número total de casos manejados por el área
+
+#### Indicadores de Tendencia
+- Comparación mes a mes
+- Identificación de áreas de mejora
+- Benchmarking con otras áreas
+- Alertas de desviación
+
+---
+
+### BENEFICIOS PARA EL CLIENTE
+
+#### Para la Organización
+1. **Mayor autonomía**: Los jefes de área gestionan sus planes de forma independiente
+2. **Mayor responsabilidad**: Métricas claras de desempeño y accountability
+3. **Mejor comunicación**: Flujo estructurado entre SO y jefes de área
+4. **Optimización de recursos**: Mejor distribución de trabajo y materiales
+
+#### Para los Jefes de Área
+1. **Visibilidad total**: Control completo de su situación en tiempo real
+2. **Eficiencia**: Herramientas optimizadas para su flujo de trabajo específico
+3. **Toma de decisiones**: Datos claros para priorizar actividades
+4. **Proactividad**: Alertas anticipadas para evitar vencimientos
+
+#### Para Seguridad Operativa
+1. **Mayor colaboración**: Comunicación fluida con las áreas
+2. **Mejor seguimiento**: Visibilidad del progreso de los planes
+3. **Optimización de tiempo**: Menos tiempo en seguimiento manual
+4. **Calidad de datos**: Información más precisa y actualizada
+
+---
+
+### INTERFAZ DE USUARIO
+
+#### Diseño Profesional
+- **Gradiente de marca**: Header con identidad corporativa
+- **Jerarquía visual**: Información organizada por importancia
+- **Colores semánticos**: Rojo para urgente, naranja para warning, verde para saludable
+- **Iconos intuitivos**: Cada métrica tiene icono representativo
+
+#### Experiencia de Usuario
+- **Responsive**: Funciona en desktop, tablet y móvil
+- **Intuitivo**: Navegación clara y simple
+- **Rápido**: Carga instantánea de información
+- **Accesible**: Diseño accesible para todos los usuarios
+
+---
+
+### INTEGRACIÓN CON EL SISTEMA
+
+#### Conexión con Módulos Existentes
+- **Gestión de Casos**: Acceso a casos específicos del área
+- **Planes de Acción**: Integración completa con el módulo de planes
+- **Notificaciones**: Sistema de alertas centralizado
+- **Usuarios**: Integración con base de datos de RRHH
+
+#### Sincronización de Datos
+- **Tiempo real**: Actualizaciones automáticas de métricas
+- **Historial**: Registro de todas las acciones
+- **Auditoría**: Trazabilidad completa de cambios
+- **Backup**: Respaldo automático de información
+
+---
+
+### CAPACITACIÓN REQUERIDA
+
+#### Para Jefes de Área
+- **Formación operativa**: 4 horas de capacitación en el sistema
+- **Gestión de planes**: 4 horas en manejo de planes de acción
+- **Documentación**: 2 horas en registro de evidencias
+- **Total**: 10 horas de capacitación
+
+#### Contenidos de Capacitación
+1. Uso del dashboard personalizado
+2. Proceso de aprobación de planes
+3. Registro de avances y evidencias
+4. Solicitud de ampliaciones
+5. Interpretación de KPIs
+6. Mejores prácticas de ejecución
+
+---
+
+### PRÓXIMAS MEJORAS PLANIFICADAS
+
+#### Fase 2 - Corto Plazo (3-4 semanas)
+1. **Calendarización de actividades**: Vista calendario para mejor planificación
+2. **Gestión de recursos del área**: Asignación de trabajadores y materiales
+
+#### Fase 3 - Mediano Plazo (1-2 meses)
+3. **Historial de desempeño**: Análisis de tendencias y comparativas
+4. **Comunicación directa con SO**: Chat integrado y videoconferencias
+
+#### Fase 4 - Largo Plazo (3-6 meses)
+5. **Reportes personalizados**: Generación de reportes formales del área
+6. **Gamificación**: Sistema de incentivos por buen desempeño
+
+---
+
+### DEMOSTRACIÓN SUGERIDA
+
+#### Escenario 1: Recepción de Plan Nuevo
+1. SO elabora plan para Mantenimiento
+2. Jefe de Mantenimiento recibe notificación
+3. Accede a dashboard personalizado
+4. Ve alerta en "Por Aprobar"
+5. Revisa detalles del plan
+6. Aprueba dentro del plazo de 48 horas
+
+#### Escenario 2: Gestión de Actividades Semanales
+1. Jefe accede dashboard
+2. Ve "Actividades Esta Semana"
+3. Identifica 3 actividades que vencen en 2 días
+4. Asigna recursos
+5. Registra avances
+6. Adjunta evidencias fotográficas
+
+#### Escenario 3: Análisis de Desempeño
+1. Jefe revisa KPIs del área
+2. Ve cumplimiento SLA: 92% (objetivo ≥85%)
+3. Tiempo de respuesta: 1.2 días (promedio)
+4. Compara con mes anterior
+5. Identifica áreas de mejora
+6. Planifica acciones correctivas
+
+---
+
+### CONCLUSIÓN
+
+El perfil de **Jefe de Área** en SIGMA L1 ahora ofrece una experiencia completa y profesional que permite:
+
+- **Autonomía operativa**: Gestión independiente de los planes del área
+- **Visibilidad total**: Control completo de la situación en tiempo real
+- **Eficiencia maximizada**: Herramientas optimizadas para su flujo de trabajo
+- **Responsabilidad clara**: Métricas específicas de desempeño
+- **Colaboración efectiva**: Comunicación fluida con Seguridad Operativa
+
+Esta implementación representa un avance significativo en la gestión operativa de la Línea 1 del Metro de Lima, proporcionando a los jefes de área las herramientas necesarias para ejecutar sus responsabilidades de forma eficiente y profesional.
+
+---
+
+*Documento de presentación para cliente*
+*Fecha: Julio 2026*
+*Versión: 1.0*
+*Sistema: SIGMA L1 - Gestión de Seguridad Operativa*
