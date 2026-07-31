@@ -1,0 +1,221 @@
+# SISTEMA DE GESTIÓN DE SEGURIDAD OPERATIVA (SIGMA) L1
+## PERFILES DE USUARIOS Y FUNCIONES
+
+---
+
+### 1. PERFIL: REPORTANTE
+
+#### Descripción
+Usuario que detecta y reporta incidentes, accidentes, condiciones inseguras o actos inseguros en las instalaciones de la Línea 1 del Metro de Lima.
+
+#### Funciones Principales
+- **Registro de Incidentes**: Reportar cualquier evento de seguridad operativa en tiempo real
+- **Documentación**: Proporcionar información detallada sobre el incidente (fecha, hora, ubicación, descripción)
+- **Seguimiento**: Monitorear el estado del caso reportado a través del sistema
+- **Colaboración**: Proporcionar información adicional cuando sea requerida por el equipo de investigación
+
+#### Responsabilidades
+- Reportar incidentes con la mayor precisión y rapidez posible
+- Mantener actualizada la información proporcionada
+- Colaborar con las investigaciones cuando sea solicitado
+- Respetar los protocolos de seguridad operativa establecidos
+
+#### Accesos del Sistema
+- Crear nuevos casos de seguridad operativa
+- Ver el estado de sus casos reportados
+- Actualizar información de casos pendientes
+- Recibir notificaciones sobre avances de sus casos
+
+---
+
+### 2. PERFIL: SEGURIDAD OPERATIVA (SO)
+
+#### Descripción
+Analista especializado en seguridad operativa responsable de la investigación, análisis y seguimiento de casos de riesgos operativos en la Línea 1.
+
+#### Funciones Principales
+- **Evaluación de Casos**: Revisar y clasificar los casos reportados según su nivel de riesgo
+- **Investigación**: Realizar investigaciones técnicas de incidentes y accidentes
+- **Análisis de Causa Raíz**: Determinar las causas fundamentales de los eventos
+- **Elaboración de Planes de Acción**: Diseñar planes correctivos y preventivos
+- **Seguimiento**: Monitorear la ejecución de los planes de acción
+- **Verificación**: Validar la efectividad de las medidas implementadas
+- **Cierre de Casos**: Formalizar el cierre de casos cuando se cumplen los objetivos
+
+#### Responsabilidades
+- Garantizar la calidad y profundidad de las investigaciones
+- Asegurar que los planes de acción sean realistas y efectivos
+- Mantener comunicación constante con los jefes de área
+- Cumplir con los tiempos establecidos en los SLA
+- Documentar todos los hallazgos y conclusiones
+- Proponer mejoras continuas al sistema de gestión
+
+#### Accesos del Sistema
+- Acceso completo a todos los casos del sistema
+- Aprobación/rechazo de casos en etapa de evaluación
+- Creación y gestión de investigaciones
+- Elaboración y envío de planes de acción
+- Aprobación de planes de acción enviados por jefes de área
+- Monitoreo de ejecución de planes
+- Verificación y cierre de casos
+- Acceso a reportes y estadísticas
+
+---
+
+### 3. PERFIL: JEFE DE ÁREA
+
+#### Descripción
+Responsable operativo de cada área funcional (Mantenimiento, Operaciones, SSOMA, etc.) encargado de ejecutar los planes de acción asignados a su área.
+
+#### Funciones Principales
+- **Recepción de Planes**: Recibir y revisar los planes de acción asignados a su área
+- **Aprobación de Planes**: Aprobar los planes de acción dentro del plazo establecido (48 horas)
+- **Ejecución**: Implementar las actividades y medidas correctivas definidas
+- **Registro de Avances**: Documentar el progreso de cada actividad del plan
+- **Adjuntar Evidencias**: Subir pruebas documentales, fotográficas o videos de la ejecución
+- **Solicitud de Ampliaciones**: Solicitar extensiones de plazo cuando sea necesario
+- **Reporte de Finalización**: Notificar la conclusión de actividades y solicitar verificación
+
+#### Responsabilidades
+- Ejecutar los planes de acción en los tiempos establecidos
+- Garantizar la calidad de las evidencias presentadas
+- Mantener comunicación con Seguridad Operativa
+- Asignar recursos adecuados para la ejecución
+- Documentar cualquier desviación o problema durante la ejecución
+- Solicitar ampliaciones con justificación adecuada cuando sea necesario
+
+#### Accesos del Sistema
+- Ver planes de acción asignados a su área
+- Aprobar/rechazar planes de acción
+- Registrar avances de actividades
+- Adjuntar evidencias de ejecución
+- Solicitar ampliaciones de plazo
+- Verificar y marcar actividades como completadas
+- Acceso a casos de su área específica
+
+---
+
+### 4. PERFIL: ADMINISTRADOR DEL SISTEMA
+
+#### Descripción
+Usuario con acceso total al sistema responsable de la configuración, mantenimiento y soporte técnico de la plataforma SIGMA.
+
+#### Funciones Principales
+- **Gestión de Usuarios**: Crear, modificar y desactivar cuentas de usuario
+- **Configuración del Sistema**: Ajustar parámetros y configuraciones generales
+- **Mantenimiento de Datos**: Gestionar la base de datos y realizar respaldos
+- **Soporte Técnico**: Resolver problemas técnicos reportados por usuarios
+- **Actualizaciones**: Implementar mejoras y actualizaciones del sistema
+- **Reportes**: Generar reportes administrativos y de auditoría
+
+#### Responsabilidades
+- Garantizar la disponibilidad y seguridad del sistema
+- Mantener actualizada la base de datos de usuarios
+- Resolver incidencias técnicas en tiempos adecuados
+- Documentar cambios y actualizaciones del sistema
+- Realizar respaldos periódicos de la información
+- Capacitar a nuevos usuarios en el uso del sistema
+
+#### Accesos del Sistema
+- Acceso total a todas las funcionalidades del sistema
+- Gestión de usuarios y permisos
+- Configuración de parámetros del sistema
+- Acceso a logs y auditoría
+- Generación de reportes administrativos
+
+---
+
+### MATRIZ DE RESPONSABILIDADES POR ETAPA DEL PROCESO
+
+| Etapa del Proceso | Reportante | Seguridad Operativa | Jefe de Área | Administrador |
+|-------------------|------------|-------------------|--------------|---------------|
+| Registro de Caso | Principal | - | - | - |
+| Evaluación | Colaborador | Principal | - | - |
+| Investigación | Colaborador | Principal | - | - |
+| Plan de Acción | - | Principal (elabora) | Principal (ejecuta) | - |
+| Ejecución | - | Seguimiento | Principal | - |
+| Verificación | - | Principal | Colaborador | - |
+| Cierre | - | Principal | - | - |
+
+---
+
+### NIVELES DE ACCESO Y PERMISOS
+
+#### Nivel 1: Básico (Reportante)
+- Creación de casos
+- Visualización de casos propios
+- Actualización de información básica
+
+#### Nivel 2: Operativo (Jefe de Área)
+- Todas las funciones del Nivel 1
+- Gestión de planes de acción asignados
+- Registro de avances y evidencias
+- Solicitud de ampliaciones
+
+#### Nivel 3: Técnico (Seguridad Operativa)
+- Todas las funciones del Nivel 2
+- Evaluación y clasificación de casos
+- Investigación técnica
+- Elaboración de planes de acción
+- Aprobación y verificación
+- Acceso a reportes y estadísticas
+
+#### Nivel 4: Administrativo (Administrador)
+- Todas las funciones del Nivel 3
+- Gestión de usuarios y permisos
+- Configuración del sistema
+- Mantenimiento técnico
+- Auditoría y logs
+
+---
+
+### PROTOCOLOS DE COMUNICACIÓN
+
+#### Entre Reportante y Seguridad Operativa
+- Canal: Sistema SIGMA (comentarios en casos)
+- Tiempo de respuesta: Máximo 24 horas
+- Tipo de comunicación: Solicitudes de información adicional
+
+#### Entre Seguridad Operativa y Jefe de Área
+- Canal: Sistema SIGMA + Correo electrónico
+- Tiempo de respuesta: Máximo 48 horas para aprobación de planes
+- Tipo de comunicación: Envío de planes, solicitudes de evidencias
+
+#### Entre Usuarios y Administrador
+- Canal: Correo electrónico + Sistema de tickets
+- Tiempo de respuesta: Según prioridad del incidente técnico
+- Tipo de comunicación: Soporte técnico, solicitudes de acceso
+
+---
+
+### CAPACITACIÓN REQUERIDA POR PERFIL
+
+#### Reportante
+- Inducción básica al sistema SIGMA (2 horas)
+- Protocolos de reporte de incidentes (1 hora)
+- **Total: 3 horas**
+
+#### Seguridad Operativa
+- Formación completa del sistema SIGMA (8 horas)
+- Técnicas de investigación de incidentes (16 horas)
+- Análisis de causa raíz (8 horas)
+- Elaboración de planes de acción (4 horas)
+- **Total: 36 horas**
+
+#### Jefe de Área
+- Formación operativa del sistema SIGMA (4 horas)
+- Gestión de planes de acción (4 horas)
+- Documentación de evidencias (2 horas)
+- **Total: 10 horas**
+
+#### Administrador
+- Formación técnica avanzada del sistema (16 horas)
+- Gestión de usuarios y permisos (4 horas)
+- Mantenimiento y soporte (8 horas)
+- **Total: 28 horas**
+
+---
+
+*Documento elaborado para el Sistema de Gestión de Seguridad Operativa (SIGMA) - Línea 1 Metro de Lima*
+*Fecha de elaboración: Julio 2026*
+*Versión: 1.0*

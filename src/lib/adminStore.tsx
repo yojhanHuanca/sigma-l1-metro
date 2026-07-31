@@ -31,7 +31,7 @@ const ROLLING_KEY = "sigma_l1_admin_rolling_v1";
 const AUXILIARY_KEY = "sigma_l1_admin_auxiliary_v1";
 const CATALOGS_KEY = "sigma_l1_admin_catalogs_v1";
 const CONFIG_KEY = "sigma_l1_admin_config_v1";
-const ROLES_KEY = "sigma_l1_admin_roles_v1";
+const ROLES_KEY = "sigma_l1_admin_roles_v2";
 const AUDIT_KEY = "sigma_l1_admin_audit_v1";
 const ADMIN_AUTH_KEY = "sigma_l1_admin_auth_v1";
 
@@ -148,11 +148,11 @@ const SEED_CONFIG: SystemConfig = {
 
 const SEED_ROLES: AdminRole[] = [
   {
-    id: "role_admin", key: "administrador", name: "Administrador", description: "Acceso total al sistema", color: "#d23a2c",
+    id: "role_admin", key: "administrador", name: "Administrador", description: "Acceso total al sistema, gestión de usuarios, roles, áreas, estaciones, catálogos y configuración", color: "#d23a2c",
     permissions: { ...FULL_PERMISSIONS }, isSystem: true, createdAt: "2025-01-15T08:00:00Z", updatedAt: "2025-01-15T08:00:00Z",
   },
   {
-    id: "role_so", key: "seguridad_operativa", name: "Seguridad Operativa", description: "Gestión de casos, investigación y cierre", color: "#14814a",
+    id: "role_so", key: "seguridad_operativa", name: "Seguridad Operativa", description: "Gestión de casos, investigación, planes de acción, verificación y cierre del expediente", color: "#14814a",
     permissions: {
       ...FULL_PERMISSIONS,
       adminAccess: false, configEdit: false, catalogEdit: false, areaEdit: false,
@@ -161,57 +161,22 @@ const SEED_ROLES: AdminRole[] = [
     isSystem: true, createdAt: "2025-01-15T08:00:00Z", updatedAt: "2025-01-15T08:00:00Z",
   },
   {
-    id: "role_auditor", key: "auditor", name: "Auditor", description: "Revisión de cumplimiento (solo lectura)", color: "#2c7be0",
-    permissions: {
-      ...DEFAULT_PERMISSIONS,
-      caseView: true, investigationView: true, planView: true, executionView: true,
-      reportView: true, reportExport: true, kpiView: true, auditView: true, userView: true,
-    },
-    isSystem: true, createdAt: "2025-01-15T08:00:00Z", updatedAt: "2025-01-15T08:00:00Z",
-  },
-  {
-    id: "role_consulta", key: "consulta", name: "Consulta", description: "Acceso de solo lectura", color: "#767f79",
-    permissions: {
-      ...DEFAULT_PERMISSIONS,
-      caseView: true, reportView: true, kpiView: true,
-    },
-    isSystem: true, createdAt: "2025-01-15T08:00:00Z", updatedAt: "2025-01-15T08:00:00Z",
-  },
-  {
-    id: "role_investigador", key: "investigador", name: "Investigador", description: "Investigación de casos asignados", color: "#d99520",
-    permissions: {
-      ...DEFAULT_PERMISSIONS,
-      caseView: true, investigationView: true, investigationEdit: true,
-      reportView: true, kpiView: true,
-    },
-    isSystem: false, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
-  },
-  {
-    id: "role_supervisor", key: "supervisor", name: "Supervisor", description: "Supervisión operativa de áreas", color: "#7c3aed",
+    id: "role_jefe_area", key: "jefe_area", name: "Jefe de Área", description: "Ejecución de planes de acción asignados, registro de avances, evidencias y solicitudes de prórroga", color: "#0891b2",
     permissions: {
       ...DEFAULT_PERMISSIONS,
       caseView: true, caseCreate: true, caseAssign: true,
-      investigationView: true, planView: true, executionView: true, executionEdit: true,
-      reportView: true, kpiView: true,
+      investigationView: true, planView: true, planCreate: true, executionView: true, executionEdit: true,
+      reportView: true, reportExport: true, kpiView: true,
     },
-    isSystem: false, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
+    isSystem: true, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
   },
   {
-    id: "role_jefe_area", key: "jefe_area", name: "Jefe de Área", description: "Ejecución de planes de acción asignados", color: "#0891b2",
-    permissions: {
-      ...DEFAULT_PERMISSIONS,
-      caseView: true, planView: true, executionView: true, executionEdit: true,
-      reportView: true, kpiView: true,
-    },
-    isSystem: false, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
-  },
-  {
-    id: "role_trabajador", key: "trabajador", name: "Trabajador", description: "Reporte de incidentes y consulta", color: "#059669",
+    id: "role_trabajador", key: "trabajador", name: "Trabajador", description: "Reporte de incidentes, consulta de sus casos y respuesta a solicitudes de información", color: "#059669",
     permissions: {
       ...DEFAULT_PERMISSIONS,
       caseCreate: true, caseView: true, reportView: true,
     },
-    isSystem: false, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
+    isSystem: true, createdAt: "2025-06-01T08:00:00Z", updatedAt: "2025-06-01T08:00:00Z",
   },
 ];
 

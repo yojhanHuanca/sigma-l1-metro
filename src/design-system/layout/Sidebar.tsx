@@ -74,14 +74,14 @@ export function Sidebar() {
     },
     {
       id: "casos",
-      label: "Gestión de Casos",
+      label: "Gestión de Reportes",
       icon: FolderKanban,
       children: [
-        { to: "/seguridad/casos?filtro=nuevos", label: "Casos Nuevos", icon: FilePlus2, badge: counts.nuevos },
-        { to: "/seguridad/casos?filtro=pendientes", label: "Casos Pendientes", icon: Clock, badge: counts.pendientes },
-        { to: "/seguridad/casos?filtro=derivados", label: "Casos Derivados", icon: Send, badge: counts.derivados },
+        { to: "/seguridad/casos?filtro=nuevos", label: "Reportes Nuevos", icon: FilePlus2, badge: counts.nuevos },
+        { to: "/seguridad/casos?filtro=pendientes", label: "Reportes Pendientes", icon: Clock, badge: counts.pendientes },
+        { to: "/seguridad/casos?filtro=derivados", label: "Reportes Derivados", icon: Send, badge: counts.derivados },
         { to: "/seguridad/casos?filtro=seguimiento", label: "En Seguimiento", icon: Activity, badge: counts.seguimiento },
-        { to: "/seguridad/casos?filtro=cerrados", label: "Casos Cerrados", icon: CheckCircle2, badge: counts.cerrados },
+        { to: "/seguridad/casos?filtro=cerrados", label: "Reportes Cerrados", icon: CheckCircle2, badge: counts.cerrados },
       ],
     },
     {
@@ -132,7 +132,7 @@ export function Sidebar() {
     <aside className="w-[260px] shrink-0 h-screen sticky top-0 bg-white border-r border-line flex flex-col">
       <div className="px-5 h-16 flex items-center border-b border-line-soft">
         <Link to="/seguridad">
-          <Logo size={32} />
+          <Logo size={48} />
         </Link>
       </div>
 

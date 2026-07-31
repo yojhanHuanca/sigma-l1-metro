@@ -143,10 +143,8 @@ export function CaseFile() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[14px] font-bold text-brand-700">{c.id}</span>
+            <span className="font-mono text-[18px] font-bold text-brand-700">{c.id}</span>
             <span className="text-ink-faint">·</span>
-            <Pill tone="neutral">{EVENT_LABELS[c.type]}</Pill>
-            <RiskPill risk={c.riskLevel} showCategory />
             <StagePill stage={c.stage} />
           </div>
           <h1 className="mt-2 text-[22px] font-bold text-ink tracking-tight leading-tight max-w-3xl">{c.title}</h1>
@@ -191,12 +189,6 @@ export function CaseFile() {
                   </div>
                   <div className="hidden md:block">
                     <p className={cn(
-                      "text-[10px] font-semibold tracking-wide uppercase",
-                      active && !pendingInfo ? "text-info-ink" : pendingInfo ? "text-warning-ink" : done ? "text-brand-700" : "text-ink-faint"
-                    )}>
-                      Etapa {i + 1}
-                    </p>
-                    <p className={cn(
                       "text-[12.5px] font-medium leading-tight",
                       active && !pendingInfo ? "text-info-ink" : pendingInfo ? "text-warning-ink" : done ? "text-ink" : "text-ink-quiet"
                     )}>
@@ -204,9 +196,6 @@ export function CaseFile() {
                     </p>
                   </div>
                 </div>
-                {i < STAGE_STEP.length - 1 && (
-                  <div className={cn("h-0.5 w-6 sm:w-12 rounded-full mx-0.5", done ? "bg-brand-700" : "bg-line")} />
-                )}
               </div>
             );
           })}
@@ -240,7 +229,6 @@ function LeftPanel({ c }: { c: ReturnType<typeof useStore>["cases"][number] }) {
           <InfoRow icon={<Clock className="h-3.5 w-3.5" />} label="Hora" value={c.time} />
           <InfoRow icon={<UserIcon className="h-3.5 w-3.5" />} label="Reportante" value={c.reporter} />
           {c.assignee && <InfoRow icon={<UserIcon className="h-3.5 w-3.5" />} label="Asignado a" value={c.assignee} />}
-          <InfoRow icon={<Timer className="h-3.5 w-3.5" />} label="SLA vence" value={formatDate(c.slaDueDate)} />
           <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Creado" value={formatDateTime(c.createdAt)} />
           {c.closedAt && <InfoRow icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Cerrado" value={formatDateTime(c.closedAt)} />}
         </div>
@@ -393,12 +381,6 @@ function DescriptionBlock({ c }: { c: Store["cases"][number] }) {
         <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-1.5">Descripción del evento</p>
         <p className="text-[13.5px] text-ink-soft leading-relaxed">{c.description}</p>
       </div>
-      {c.observations && (
-        <div>
-          <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-1.5">Observaciones del reportante</p>
-          <p className="text-[13.5px] text-ink-soft leading-relaxed">{c.observations}</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -416,7 +398,7 @@ function ReceptionStage({ c, store }: { c: Store["cases"][number]; store: Store 
   return (
     <div className="space-y-4">
       <StageSection
-        title={isRecepcion ? "Recepción y Revisión del Reporte" : "Evaluación del Caso"}
+        title={isRecepcion ? "Recepción y Revisión de Reporte" : "Evaluación del Caso"}
         subtitle={isRecepcion
           ? "Revise toda la información del reporte, evidencias y descripción. Apruebe para avanzar a Evaluación."
           : "Analice la gravedad, defina prioridad y clasifique el caso. Determine si requiere investigación."}
@@ -424,6 +406,19 @@ function ReceptionStage({ c, store }: { c: Store["cases"][number]; store: Store 
         action={<Pill tone="info" dot>{isRecepcion ? "Pendiente de aprobación" : "En evaluación"}</Pill>}
       >
         <DescriptionBlock c={c} />
+
+        {c.pendingInfoRequest && (
+          <div className="mt-4 rounded-lg bg-warning-soft border border-warning/30 p-4">
+            <div className="flex items-start gap-3">
+              <Mail className="h-5 w-5 text-warning-ink shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-warning-ink">Información adicional solicitada</p>
+                <p className="text-[12.5px] text-ink-soft mt-1">{c.pendingInfoRequest.question}</p>
+                <p className="text-[11px] text-ink-faint mt-1.5">Solicitada {relativeTime(c.pendingInfoRequest.requestedAt)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isRecepcion ? (
           <div className="mt-5 pt-5 border-t border-line-soft flex items-center gap-2 flex-wrap">
@@ -548,7 +543,7 @@ function EvaluationForm({ c, store }: { c: Store["cases"][number]; store: Store 
         <div className="flex gap-2">
           <button onClick={() => setRequiresInvestigation(true)}
             className={cn("flex-1 h-10 rounded-lg text-[12.5px] font-medium border transition-all", requiresInvestigation ? "border-brand-600 bg-brand-50 text-brand-800" : "border-line bg-white text-ink-soft hover:bg-surface/50")}>
-            Sí, requiere investigación
+            Sí
           </button>
           <button onClick={() => setRequiresInvestigation(false)}
             className={cn("flex-1 h-10 rounded-lg text-[12.5px] font-medium border transition-all", !requiresInvestigation ? "border-brand-600 bg-brand-50 text-brand-800" : "border-line bg-white text-ink-soft hover:bg-surface/50")}>
@@ -557,9 +552,11 @@ function EvaluationForm({ c, store }: { c: Store["cases"][number]; store: Store 
         </div>
       </Field>
 
-      <Field label="Observaciones de la evaluación">
-        <Textarea value={observations} onChange={(e) => setObservations(e.target.value)} rows={3} placeholder="Análisis, antecedentes, criterios considerados…" />
-      </Field>
+      {!requiresInvestigation && (
+        <Field label="Observaciones de la evaluación">
+          <Textarea value={observations} onChange={(e) => setObservations(e.target.value)} rows={3} placeholder="Análisis, antecedentes, criterios considerados…" />
+        </Field>
+      )}
 
       <div className="pt-3 border-t border-line-soft flex items-center justify-end gap-2">
         <Button size="sm" disabled={!canSave} onClick={() => store.saveEvaluation(c.id, { gravity: gravityFromRisk, riskLevel, classification: cleanClassification, requiresInvestigation, observations: observations.trim() })}>
@@ -625,14 +622,10 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
 
   return (
     <div className="space-y-4">
-      {/* 3 tarjetas: Investigador, Jefe Responsable, Trabajadores Involucrados */}
+      {/* 2 tarjetas: Investigador, Jefe Responsable */}
       <ResponsiblesAndWorkers c={c} store={store} />
 
       <StageSection title="Investigación del caso" subtitle="Seguridad Operativa registra hallazgos, causa raíz, análisis, conclusiones y evidencias." icon={<Microscope className="h-5 w-5" />} action={<Pill tone="info" dot>En curso</Pill>}>
-        <div className="rounded-lg bg-brand-50 border border-brand-200 p-3.5 flex items-start gap-2.5 mb-4">
-          <ShieldCheck className="h-4 w-4 text-brand-700 shrink-0 mt-0.5" />
-          <p className="text-[12.5px] text-brand-800"><span className="font-semibold">Investigación por Seguridad Operativa.</span> El análisis lo realiza el analista SO asignado, no el jefe del área.</p>
-        </div>
         <div className="space-y-4">
           <Field label="Hallazgos" required>
             <Textarea value={inv.findings} onChange={(e) => set("findings", e.target.value)} placeholder="¿Qué se encontró durante la inspección?" rows={3} />
@@ -667,16 +660,14 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
   );
 }
 
-/* ─── Tarjetas: Investigador + Jefe Responsable + Trabajadores Involucrados ─── */
+/* ─── Tarjeta: Investigador SO ─── */
 function ResponsiblesAndWorkers({ c, store, readOnly }: { c: Store["cases"][number]; store: Store; readOnly?: boolean }) {
-  const investigatorName = c.investigator && c.investigator.trim() ? c.investigator : "Antonio Rebaza Lizaraso";
-  const jefeArea = c.assignee ?? (c.assigneeArea ? AREA_HEADS[c.assigneeArea] : "Por asignar");
-  const jefeAreaLabel = c.assigneeArea ? AREA_LABELS[c.assigneeArea] : "—";
-  const involved = (c.involvedWorkers ?? []).filter((w) => !w.removedAt);
+  const currentUser = store.currentUser;
+  const investigatorName = currentUser.name;
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
-      {/* 1. Investigador SO */}
+    <div className="grid lg:grid-cols-1 gap-4">
+      {/* Investigador SO */}
       <Card className="p-5">
         <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-line-soft">
           <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 grid place-items-center shrink-0"><ShieldCheck className="h-4.5 w-4.5" /></div>
@@ -696,265 +687,7 @@ function ResponsiblesAndWorkers({ c, store, readOnly }: { c: Store["cases"][numb
             <div className="mt-1.5"><Pill tone="brand" dot>Asignado</Pill></div>
           </div>
         </div>
-        {/* Dropdown para cambiar */}
-        {!readOnly && (
-          <Field label="Cambiar investigador asignado">
-            <Select
-              value={RESPONSABLES_INVESTIGACION.includes(investigatorName) ? investigatorName : ""}
-              onChange={(e) => {
-                if (e.target.value) store.setInvestigator(c.id, e.target.value);
-              }}
-            >
-              <option value="">Seleccionar…</option>
-              {RESPONSABLES_INVESTIGACION.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </Select>
-          </Field>
-        )}
       </Card>
-
-      {/* 2. Trabajadores Involucrados */}
-      <Card className="p-5">
-        <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-line-soft">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-lg bg-warning-soft text-warning-ink grid place-items-center shrink-0"><UserCheck className="h-4.5 w-4.5" /></div>
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-ink-faint">Trabajadores Involucrados</p>
-              <p className="text-[13px] font-bold text-ink leading-tight">Personas relacionadas al caso</p>
-            </div>
-          </div>
-          <Pill tone="neutral" className="shrink-0">{involved.length}</Pill>
-        </div>
-        {involved.length === 0 ? (
-          <div className="rounded-lg bg-surface border border-dashed border-line p-6 text-center">
-            <div className="h-10 w-10 rounded-full bg-surface-2 grid place-items-center mx-auto mb-2.5">
-              <UserCheck className="h-5 w-5 text-ink-faint" />
-            </div>
-            <p className="text-[12.5px] font-medium text-ink">Sin trabajadores involucrados</p>
-            <p className="text-[11.5px] text-ink-quiet mt-1 mb-3">No hay personas registradas en este caso.</p>
-            {!readOnly && <WorkerSearchButton c={c} store={store} />}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {involved.map((w) => (
-              <InvolvedWorkerCard key={w.id} worker={w} c={c} store={store} readOnly={readOnly} />
-            ))}
-            {!readOnly && <WorkerSearchButton c={c} store={store} />}
-          </div>
-        )}
-      </Card>
-    </div>
-  );
-}
-
-function WorkerSearchButton({ c, store }: { c: Store["cases"][number]; store: Store }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button variant="outline" size="sm" className="w-full" onClick={() => setOpen(true)}>
-        <UserPlus className="h-4 w-4" /> Agregar trabajador involucrado
-      </Button>
-      <WorkerSearchModal open={open} onClose={() => setOpen(false)} c={c} store={store} />
-    </>
-  );
-}
-
-function WorkerSearchModal({ open, onClose, c, store }: { open: boolean; onClose: () => void; c: Store["cases"][number]; store: Store }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<User[]>([]);
-  const [selected, setSelected] = useState<User | null>(null);
-  const [implication, setImplication] = useState<ImplicationType>("afectado");
-
-  const search = (q: string) => {
-    setQuery(q);
-    setResults(store.searchWorkers(q));
-  };
-
-  const add = () => {
-    if (selected) {
-      store.addInvolvedWorker(c.id, selected, implication);
-      setSelected(null); setQuery(""); setResults([]);
-      onClose();
-    }
-  };
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Agregar trabajador involucrado"
-      subtitle="Buscar por DNI o código de trabajador en la base de datos sincronizada"
-      size="lg"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={add} disabled={!selected}><UserPlus className="h-4 w-4" /> Agregar al caso</Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <Field label="Buscar por DNI o Código de Trabajador" required>
-          <div className="flex items-center gap-2 h-10 px-3 rounded-lg bg-white border border-line-strong focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-600/15">
-            <Search className="h-4 w-4 text-ink-faint shrink-0" />
-            <input
-              value={query}
-              onChange={(e) => search(e.target.value)}
-              placeholder="Escriba el DNI (ej. 45891234) o código (ej. EMP-0010)…"
-              className="flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-ink-faint"
-              autoFocus
-            />
-          </div>
-        </Field>
-
-        {/* Resultados */}
-        {query.trim() && !selected && (
-          <div className="rounded-lg border border-line max-h-[240px] overflow-y-auto">
-            {results.length === 0 ? (
-              <div className="p-6 text-center text-[13px] text-ink-quiet">
-                No se encontraron trabajadores. Verifique el DNI o código.
-              </div>
-            ) : (
-              results.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => { setSelected(u); setQuery(""); setResults([]); }}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-surface transition-colors border-b border-line-soft last:border-0 text-left"
-                >
-                  <div className="h-10 w-10 rounded-full grid place-items-center text-white text-[12px] font-semibold shrink-0" style={{ background: u.avatarColor ?? "#14814a" }}>
-                    {u.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-ink truncate">{u.name}</p>
-                    <p className="text-[11.5px] text-ink-quiet">{u.code} · DNI {u.dni} · {u.cargo}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[11px] text-ink-soft">{u.area ? AREA_LABELS[u.area] : "—"}</p>
-                    <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full mt-0.5 inline-block",
-                      u.laborState === "activo" ? "bg-brand-50 text-brand-800" :
-                      u.laborState === "baja_definitiva" ? "bg-critical-soft text-critical-ink" :
-                      "bg-surface-2 text-ink-quiet")}>
-                      {LABOR_STATE_LABELS[u.laborState]}
-                    </span>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Trabajador seleccionado */}
-        {selected && (
-          <div className="rounded-xl bg-brand-50 border border-brand-200 p-4 animate-[riseUp_0.25s_ease-out]">
-            <div className="flex items-start gap-3">
-              <div className="h-14 w-14 rounded-full grid place-items-center text-white text-[15px] font-bold shrink-0" style={{ background: selected.avatarColor ?? "#14814a" }}>
-                {selected.initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-[15px] font-bold text-ink">{selected.name}</p>
-                  {selected.laborState === "baja_definitiva" && (
-                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-critical text-white">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" /> Baja Definitiva
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
-                  <p><span className="text-ink-faint">Código:</span> <span className="text-ink font-medium">{selected.code}</span></p>
-                  <p><span className="text-ink-faint">DNI:</span> <span className="text-ink font-medium">{selected.dni}</span></p>
-                  <p><span className="text-ink-faint">Cargo:</span> <span className="text-ink font-medium">{selected.cargo}</span></p>
-                  <p><span className="text-ink-faint">Área:</span> <span className="text-ink font-medium">{selected.area ? AREA_LABELS[selected.area] : "—"}</span></p>
-                  <p><span className="text-ink-faint">Jefe inmediato:</span> <span className="text-ink font-medium">{selected.area ? AREA_HEADS[selected.area] : "—"}</span></p>
-                  <p><span className="text-ink-faint">Estado:</span> <span className="text-ink font-medium">{LABOR_STATE_LABELS[selected.laborState]}</span></p>
-                </div>
-              </div>
-              <button onClick={() => setSelected(null)} className="shrink-0 h-7 w-7 grid place-items-center rounded-md text-ink-quiet hover:bg-white/60">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            <Field label="Tipo de implicación" required className="mt-4">
-              <Select value={implication} onChange={(e) => setImplication(e.target.value as ImplicationType)}>
-                {(Object.keys(IMPLICATION_LABELS) as ImplicationType[]).map((k) => (
-                  <option key={k} value={k}>{IMPLICATION_LABELS[k]}</option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-function InvolvedWorkerCard({ worker, c, store, readOnly }: { worker: InvolvedWorker; c: Store["cases"][number]; store: Store; readOnly?: boolean }) {
-  const [editing, setEditing] = useState(false);
-  const [statement, setStatement] = useState(worker.statement ?? "");
-  const [observations, setObservations] = useState(worker.observations ?? "");
-  const [implication, setImplication] = useState<ImplicationType>(worker.implication);
-
-  const save = () => {
-    store.updateInvolvedWorker(c.id, worker.id, { statement: statement.trim() || undefined, observations: observations.trim() || undefined, implication });
-    setEditing(false);
-  };
-
-  return (
-    <div className={cn("rounded-lg border p-3", worker.laborState === "baja_definitiva" ? "border-critical/30 bg-critical-soft/30" : "border-line bg-white")}>
-      <div className="flex items-start gap-2.5">
-        <div className="h-9 w-9 rounded-full grid place-items-center text-white text-[11px] font-semibold shrink-0" style={{ background: worker.avatarColor ?? "#14814a" }}>
-          {worker.initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="text-[13px] font-semibold text-ink truncate">{worker.name}</p>
-            {worker.laborState === "baja_definitiva" && (
-              <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-critical text-white">
-                <span className="h-1 w-1 rounded-full bg-white" /> Baja Definitiva
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-ink-quiet mt-0.5">{worker.code} · {worker.cargo}</p>
-          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            <Pill tone="warning" dot>{IMPLICATION_LABELS[worker.implication]}</Pill>
-            <Pill tone="neutral">{worker.area ? AREA_LABELS[worker.area] : "—"}</Pill>
-          </div>
-        </div>
-        {!readOnly && !editing && (
-          <div className="flex flex-col gap-1 shrink-0">
-            <button onClick={() => setEditing(true)} className="text-[11px] text-brand-700 hover:underline">Editar</button>
-            <button onClick={() => store.removeInvolvedWorker(c.id, worker.id)} className="text-[11px] text-critical hover:underline">Retirar</button>
-          </div>
-        )}
-      </div>
-
-      {editing && (
-        <div className="mt-3 pt-3 border-t border-line-soft space-y-2.5 animate-[riseUp_0.2s_ease-out]">
-          <Field label="Tipo de implicación">
-            <Select value={implication} onChange={(e) => setImplication(e.target.value as ImplicationType)}>
-              {(Object.keys(IMPLICATION_LABELS) as ImplicationType[]).map((k) => (
-                <option key={k} value={k}>{IMPLICATION_LABELS[k]}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Declaración">
-            <Textarea value={statement} onChange={(e) => setStatement(e.target.value)} rows={2} placeholder="Declaración del trabajador sobre el incidente…" />
-          </Field>
-          <Field label="Observaciones">
-            <Textarea value={observations} onChange={(e) => setObservations(e.target.value)} rows={2} placeholder="Observaciones relacionadas al caso…" />
-          </Field>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancelar</Button>
-            <Button size="sm" onClick={save}><Check className="h-4 w-4" /> Guardar</Button>
-          </div>
-        </div>
-      )}
-
-      {!editing && (worker.statement || worker.observations) && (
-        <div className="mt-2 pt-2 border-t border-line-soft space-y-1">
-          {worker.statement && <p className="text-[11.5px] text-ink-soft"><span className="font-semibold text-ink">Declaración:</span> {worker.statement}</p>}
-          {worker.observations && <p className="text-[11.5px] text-ink-soft"><span className="font-semibold text-ink">Observaciones:</span> {worker.observations}</p>}
-        </div>
-      )}
     </div>
   );
 }
@@ -982,70 +715,12 @@ function InvBlock({ label, value, tone }: { label: string; value: string; tone?:
 }
 
 /* ─── ETAPA 4 — Plan de Acción (SO) ─── */
-interface PlanFormItem { name: string; description: string; owner: string; priority: Priority; startDate: string; dueDate: string; }
+interface PlanFormItem { description: string; owner: string; priority: Priority; startDate: string; dueDate: string; actionType: string; area: Area; }
 
 function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
   const plan = c.actionPlan;
   const [formOpen, setFormOpen] = useState(!plan);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [decision, setDecision] = useState<"aprobado" | "rechazado">("aprobado");
-  const [note, setNote] = useState("");
   const [editPlanMode, setEditPlanMode] = useState(false);
-
-  if (plan?.reviewDecision === "aprobado" && !editPlanMode) {
-    return (
-      <div className="space-y-4">
-        {c.investigation && (
-          <StageSection title="Investigación" subtitle="Hallazgos y causa raíz." icon={<Microscope className="h-5 w-5" />}>
-            <InvDisplay inv={c.investigation} />
-          </StageSection>
-        )}
-        <StageSection title="Plan de Acción aprobado" subtitle="El plan fue aprobado por Seguridad Operativa. Inicie la ejecución." icon={<ClipboardList className="h-5 w-5" />} action={
-          <div className="flex items-center gap-2">
-            <Pill tone="brand" dot>Aprobado</Pill>
-            <Button variant="outline" size="sm" onClick={() => setEditPlanMode(true)}>
-              <FileSearch className="h-4 w-4" /> Editar plan
-            </Button>
-          </div>
-        }>
-          <PlanDisplay c={c} />
-          <div className="mt-4 pt-4 border-t border-line-soft rounded-xl bg-brand-50 border border-brand-200 p-4 flex items-center justify-between gap-3 -mx-1">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="h-5 w-5 text-brand-700 shrink-0" />
-              <p className="text-[12.5px] text-brand-800"><span className="font-semibold">Plan aprobado.</span> La etapa de Ejecución está habilitada.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => downloadPlan(c)}>
-                <Download className="h-4 w-4" /> Descargar Plan
-              </Button>
-              <Button size="sm" onClick={() => store.startExecution(c.id)}><Rocket className="h-4 w-4" /> Iniciar ejecución</Button>
-            </div>
-          </div>
-        </StageSection>
-      </div>
-    );
-  }
-
-  // Modo edición del plan (reabrió un caso con plan aprobado)
-  if (editPlanMode && plan) {
-    return (
-      <div className="space-y-4">
-        {c.investigation && (
-          <StageSection title="Investigación" subtitle="Hallazgos y causa raíz." icon={<Microscope className="h-5 w-5" />}>
-            <InvDisplay inv={c.investigation} />
-          </StageSection>
-        )}
-        <StageSection title="Editar Plan de Acción" subtitle="Modifique el plan y vuelva a enviarlo al jefe del área." icon={<ClipboardList className="h-5 w-5" />} action={
-          <Button variant="ghost" size="sm" onClick={() => setEditPlanMode(false)}>
-            <X className="h-4 w-4" /> Cancelar edición
-          </Button>
-        }>
-          <PlanForm c={c} store={store} onSubmitted={() => setEditPlanMode(false)} />
-        </StageSection>
-        <ResponsiblesAndWorkers c={c} store={store} readOnly />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -1056,180 +731,150 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
       )}
       <StageSection
         title="Plan de Acción"
-        subtitle={plan ? "Plan enviado al jefe del área. Pendiente de aprobación por Seguridad Operativa." : "Seguridad Operativa crea el Plan de Acción y lo envía al jefe del área."}
+        subtitle={plan ? "Plan enviado al jefe del área. Pendiente de revisión y aprobación." : "Seguridad Operativa crea el Plan de Acción y lo envía al jefe del área."}
         icon={<ClipboardList className="h-5 w-5" />}
-        action={plan ? <Pill tone="warning" dot>Para aprobar</Pill> : <Pill tone="info" dot>Por crear</Pill>}
+        action={plan ? <Pill tone="warning" dot>Para revisar</Pill> : <Pill tone="info" dot>Por crear</Pill>}
       >
         {plan && !formOpen ? (
           <>
             <PlanDisplay c={c} />
-            <div className="mt-4 rounded-xl bg-warning-soft border border-warning/30 p-4">
-              <div className="flex items-start gap-3 mb-3">
-                <AlertCircle className="h-5 w-5 text-warning-ink shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-[13px] font-semibold text-warning-ink">Aprobación de Seguridad Operativa</p>
-                  <p className="text-[12.5px] text-ink-soft mt-0.5">El plan fue enviado al jefe del área. Apruébelo para habilitar la Ejecución, o rechácelo si necesita ajustes.</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-2 flex-wrap">
-                <Button variant="ghost" size="sm" className="text-critical hover:bg-critical-soft" onClick={() => { setDecision("rechazado"); setReviewOpen(true); }}><X className="h-4 w-4" /> Rechazar plan</Button>
-                <Button size="sm" onClick={() => { setDecision("aprobado"); setReviewOpen(true); }}><Check className="h-4 w-4" /> Aprobar plan</Button>
-              </div>
+            <div className="mt-4 flex items-center justify-end gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}><FileSearch className="h-4 w-4" /> Modificar plan</Button>
+              <Button variant="outline" size="sm" onClick={() => store.startExecution(c.id)}><Rocket className="h-4 w-4" /> Iniciar ejecución</Button>
             </div>
           </>
         ) : (
           <PlanForm c={c} store={store} onSubmitted={() => setFormOpen(false)} />
         )}
       </StageSection>
-
-      <Modal open={reviewOpen} onClose={() => setReviewOpen(false)} title={decision === "aprobado" ? "Aprobar Plan de Acción" : "Rechazar Plan de Acción"} subtitle={`${c.id} · decisión de Seguridad Operativa`} size="sm"
-        footer={<><Button variant="ghost" onClick={() => setReviewOpen(false)}>Cancelar</Button><Button variant={decision === "rechazado" ? "danger" : "primary"} onClick={() => { store.reviewActionPlan(c.id, decision, note.trim() || undefined); setReviewOpen(false); }}>{decision === "aprobado" ? "Confirmar aprobación" : "Confirmar rechazo"}</Button></>}>
-        <Field label={decision === "aprobado" ? "Comentario (opcional)" : "Justificación del rechazo"} required={decision === "rechazado"}>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={decision === "aprobado" ? "Observaciones sobre la aprobación…" : "Explique por qué se rechaza el plan…"} />
-        </Field>
-      </Modal>
     </div>
   );
 }
 
+// Lista de responsables (jefes de área)
+const RESPONSIBLES = [
+  "Alejandro Vielma",
+  "Amanda Ridoutt Orozco",
+  "Antonio Rebaza Lizaraso",
+  "Carlos Barreda Torres",
+  "Cesar Malca Yañez",
+  "Christian Oliva",
+  "Eliana Pesantes",
+  "Emerson Navarrete Sotelo",
+  "Fredy Tello Ramos",
+  "Gueorgui Bonilla",
+  "Hector Hinostroza",
+  "Javier Gonzales Vasquez",
+  "Jean Sucuple Molero",
+  "Jennifer Tarazona",
+  "Jessica Marylin Bartolo",
+  "Jesus Alejandro Vielma Ochoa",
+  "Jhoany Anticona",
+  "Jhonatan Granados Carhuavilca",
+  "Jose Del Mas",
+  "Jose Pacombia",
+  "Juan Castro Velazco",
+  "Juan Pablo Muscari Ognio",
+  "Karen Peralta Canchis",
+  "Louana Martel Ramos",
+  "Manuel Arana Raunelli",
+  "Maximo Jesús Alvarez Garcia",
+  "Paul Garcia Avelino",
+  "Pedro Champa Rodriguez",
+  "Rafael Ames",
+  "Roberto Carlos Pomar Roman",
+  "Ruben Fernandez",
+  "Ruben Luque Carbajal",
+  "Victor Ruiz Micha",
+];
+
 function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store: Store; onSubmitted: () => void }) {
-  const [elaboratedBy, setElaboratedBy] = useState("Antonio Rebaza Lizaraso");
-  const [actionType, setActionType] = useState("Correctiva");
-  const [description, setDescription] = useState("");
+  const currentUser = store.currentUser;
   const today = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(today);
   const [dueDate, setDueDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const [priority, setPriority] = useState<Priority>(c.priority);
-  const [observations, setObservations] = useState("");
-  const [sentToArea, setSentToArea] = useState<Area | "">(c.area ?? "");
-  const [planCode, setPlanCode] = useState(`SOP-01-${new Date().getFullYear()}-PLA-${String(c.id.slice(-4)).padStart(2, '0')}`);
-  const [planStatus, setPlanStatus] = useState<"pendiente" | "cerrado">("pendiente");
-  const [planDate, setPlanDate] = useState(new Date().toISOString().slice(0, 10));
-  const [scheduledDate, setScheduledDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  const [annexes, setAnnexes] = useState("");
-  const [secondResponsible, setSecondResponsible] = useState("");
-  const [items, setItems] = useState<PlanFormItem[]>([{ name: "", description: "", owner: "", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) }]);
+  // Código automático basado en el caso con número secuencial
+  const planCode = `${c.id}-PLA-01`;
+  // Responsable automático basado en usuario logueado
+  const elaboratedBy = currentUser?.name || "Seguridad Operativa";
+  
+  const [items, setItems] = useState<PlanFormItem[]>([{ description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
+  const [showSummary, setShowSummary] = useState(false);
 
   const update = (i: number, key: keyof PlanFormItem, v: string) => setItems((p) => p.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)));
-  const add = () => setItems((p) => [...p, { name: "", description: "", owner: "", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10) }]);
+  const add = () => setItems((p) => [...p, { description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
   const remove = (i: number) => setItems((p) => p.filter((_, idx) => idx !== i));
 
-  const canSend = sentToArea && description.trim() && items.every((it) => it.name.trim() && it.owner.trim());
+  const canSend = items.every((it) => it.owner.trim() && it.area);
 
   const send = () => {
     if (!canSend) return;
+    // Usar el área de la primera actividad como área principal del plan
+    const mainArea = items[0].area;
     store.submitActionPlan(c.id, {
-      elaboratedBy, actionType, description: description.trim(), startDate, dueDate, estimatedTime: "", priority,
-      observations: observations.trim(), sentToArea: sentToArea as Area,
-      planCode, planStatus, planDate, scheduledDate, annexes: annexes.trim(),
-      secondResponsible: secondResponsible.trim(),
-      items: items.map((it) => ({ name: it.name.trim(), description: it.description.trim(), owner: it.owner.trim(), priority: it.priority, startDate: it.startDate, dueDate: it.dueDate })),
+      elaboratedBy,
+      actionType: "Correctiva",
+      description: "",
+      startDate,
+      dueDate,
+      estimatedTime: "",
+      priority,
+      observations: "",
+      sentToArea: mainArea,
+      planCode,
+      planStatus: "pendiente",
+      planDate: new Date().toISOString().slice(0, 10),
+      scheduledDate: dueDate,
+      annexes: "",
+      secondResponsible: "",
+      items: items.map((it) => ({ description: it.description.trim(), owner: it.owner.trim(), priority: it.priority, startDate: it.startDate, dueDate: it.dueDate, actionType: it.actionType, area: it.area })),
     });
     onSubmitted();
   };
 
+  const handlePreview = () => {
+    if (canSend) {
+      setShowSummary(true);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Responsable que elaboró el plan" required>
-          <Select
-            value={RESPONSABLES_INVESTIGACION.includes(elaboratedBy) ? elaboratedBy : elaboratedBy === "" ? "" : "__otro__"}
-            onChange={(e) => {
-              if (e.target.value === "__otro__") {
-                setElaboratedBy("");
-              } else {
-                setElaboratedBy(e.target.value);
-              }
-            }}
-          >
-            <option value="">Seleccionar responsable…</option>
-            {RESPONSABLES_INVESTIGACION.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Tipo de acción" required>
-          <Select value={actionType} onChange={(e) => setActionType(e.target.value)}>
-            <option>Correctiva</option><option>Preventiva</option><option>Mitigación</option><option>Compensatoria</option>
-          </Select>
-        </Field>
-        <Field label="Código del Plan de Acción">
-          <Input value={planCode} onChange={(e) => setPlanCode(e.target.value)} placeholder="SOP-01-2026-PLA-01" />
-        </Field>
-        <Field label="Área responsable (envío)" required>
-          <Select value={sentToArea} onChange={(e) => setSentToArea(e.target.value as Area)}>
-            <option value="">Seleccione un área…</option>
-            {(Object.keys(AREA_LABELS) as Area[]).map((a) => <option key={a} value={a}>{AREA_LABELS[a]} · Jefe: {AREA_HEADS[a]}</option>)}
-          </Select>
-        </Field>
-        {sentToArea && (
-          <Field label="Segundo responsable (opcional)">
-            <Select value={secondResponsible} onChange={(e) => setSecondResponsible(e.target.value)}>
-              <option value="">Seleccione un trabajador del área…</option>
-              {store.users
-                .filter(u => u.area === sentToArea && u.name !== AREA_HEADS[sentToArea as Area])
-                .map(u => <option key={u.code} value={u.name}>{u.name} · {u.cargo}</option>)
-              }
-            </Select>
-          </Field>
-        )}
-        <Field label="Estado del Plan de Acción">
-          <Select value={planStatus} onChange={(e) => setPlanStatus(e.target.value as "pendiente" | "cerrado")}>
-            <option value="pendiente">Pendiente</option>
-            <option value="cerrado">Cerrado</option>
-          </Select>
-        </Field>
-        <Field label="Fecha del Plan">
-          <Input type="date" min={today} value={planDate} onChange={(e) => setPlanDate(e.target.value)} />
-        </Field>
-        <Field label="Fecha Programada">
-          <Input type="date" min={startDate} value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
-        </Field>
-        <Field label="Anexos">
-          <Textarea value={annexes} onChange={(e) => setAnnexes(e.target.value)} rows={2} placeholder="Documentos adjuntos o referencias…" />
-        </Field>
-        <Field label="Descripción detallada" required className="sm:col-span-2">
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Resumen del plan de acción…" />
-        </Field>
-        <Field label="Fecha de inicio" required>
-          <Input type="date" min={today} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </Field>
-        <Field label="Fecha límite" required>
-          <Input type="date" min={startDate} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-        </Field>
-        <Field label="Observaciones">
-          <Input value={observations} onChange={(e) => setObservations(e.target.value)} placeholder="Indicaciones para el área…" />
-        </Field>
-      </div>
-
       <div className="pt-3 border-t border-line-soft">
         <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
         <div className="space-y-3">
           {items.map((it, i) => (
             <div key={i} className="rounded-lg border border-line p-3.5 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-ink-faint">Actividad {i + 1}</span>
+                <span className="text-[11px] font-semibold text-ink-faint">PLA-{String(i + 1).padStart(2, '0')}</span>
                 {items.length > 1 && <button onClick={() => remove(i)} className="text-[11px] text-critical hover:underline">Eliminar</button>}
               </div>
-              <Field label="Nombre" required>
-                <Input value={it.name} onChange={(e) => update(i, "name", e.target.value)} placeholder="" />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Responsable" required>
+                  <Select value={it.owner} onChange={(e) => update(i, "owner", e.target.value)}>
+                    {RESPONSIBLES.map((name) => <option key={name} value={name}>{name}</option>)}
+                  </Select>
+                </Field>
+              </div>
               <Field label="Descripción">
                 <Textarea value={it.description} onChange={(e) => update(i, "description", e.target.value)} rows={2} placeholder="Detalle de la actividad…" />
               </Field>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Responsable" required>
-                  <Input value={it.owner} onChange={(e) => update(i, "owner", e.target.value)} />
-                </Field>
-                <Field label="Prioridad" required>
-                  <Select value={it.priority} onChange={(e) => update(i, "priority", e.target.value)}>
-                    {(["critica", "alta", "media", "baja"] as Priority[]).map((p) => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+                <Field label="Tipo de acción" required>
+                  <Select value={it.actionType} onChange={(e) => update(i, "actionType", e.target.value)}>
+                    <option>Correctiva</option><option>Preventiva</option><option>Mitigación</option><option>Compensatoria</option>
                   </Select>
                 </Field>
-                <Field label="Fecha inicio" required>
-                  <Input type="date" min={startDate} value={it.startDate} onChange={(e) => update(i, "startDate", e.target.value)} />
+                <Field label="Área responsable" required>
+                  <Select value={it.area} onChange={(e) => update(i, "area", e.target.value as Area)}>
+                    {(Object.keys(AREA_LABELS) as Area[]).map((a) => <option key={a} value={a}>{AREA_LABELS[a]}</option>)}
+                  </Select>
                 </Field>
-                <Field label="Fecha fin" required>
+                <Field label="Fecha inicio de plan de acción" required>
+                  <Input type="date" min={today} value={it.startDate} onChange={(e) => update(i, "startDate", e.target.value)} />
+                </Field>
+                <Field label="Fecha fin de plan de acción" required>
                   <Input type="date" min={it.startDate || startDate} value={it.dueDate} onChange={(e) => update(i, "dueDate", e.target.value)} />
                 </Field>
               </div>
@@ -1242,17 +887,53 @@ function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store:
       </div>
 
       <div className="pt-3 border-t border-line-soft">
-        <Button size="sm" disabled={!canSend} onClick={send}><Send className="h-4 w-4" /> Enviar Plan de Acción al jefe del área</Button>
-        {sentToArea && AREA_HEADS[sentToArea as Area] && (
-          <p className="text-[11.5px] text-ink-quiet mt-2">Se enviará correo a {AREA_HEADS[sentToArea as Area].toLowerCase().replace(" ", ".")}@metrolinea1.pe y se registrará en la bitácora.</p>
-        )}
+        <Button size="sm" disabled={!canSend} onClick={handlePreview}><Send className="h-4 w-4" /> Revisar y enviar Plan de Acción</Button>
       </div>
+
+      {showSummary && (
+        <div className="mt-6 rounded-xl bg-brand-50 border border-brand-200 p-6 space-y-4">
+          <h3 className="text-[15px] font-semibold text-brand-900">Resumen del Plan de Acción</h3>
+          
+          <div className="grid sm:grid-cols-2 gap-3 text-sm">
+            <div><span className="text-ink-quiet">Código:</span> <span className="font-medium">{planCode}</span></div>
+            <div><span className="text-ink-quiet">Elaborado por:</span> <span className="font-medium">{elaboratedBy}</span></div>
+            <div><span className="text-ink-quiet">Área responsable:</span> <span className="font-medium">{items[0]?.area ? AREA_LABELS[items[0].area] : "—"}</span></div>
+          </div>
+
+          <div className="pt-3 border-t border-brand-300">
+            <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
+            <div className="space-y-2">
+              {items.map((it, i) => (
+                <div key={i} className="rounded-lg bg-white border border-brand-200 p-3 text-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-ink-quiet">Responsable:</span> {it.owner}</div>
+                    <div><span className="text-ink-quiet">Tipo:</span> {it.actionType}</div>
+                    <div><span className="text-ink-quiet">Área:</span> {AREA_LABELS[it.area]}</div>
+                    <div><span className="text-ink-quiet">Inicio:</span> {formatDate(it.startDate)}</div>
+                    <div><span className="text-ink-quiet">Fin:</span> {formatDate(it.dueDate)}</div>
+                  </div>
+                  {it.description && <div className="mt-2 text-xs"><span className="text-ink-quiet">Descripción:</span> {it.description}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-3 border-t border-brand-300">
+            <Button variant="outline" size="sm" onClick={() => setShowSummary(false)}><CornerUpLeft className="h-4 w-4" /> Corregir planes</Button>
+            <Button size="sm" onClick={send}><Send className="h-4 w-4" /> Enviar al jefe del área</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function PlanDisplay({ c }: { c: Store["cases"][number] }) {
   const plan = c.actionPlan!;
+  const planCode = `${c.id}-PLA-01`;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2 -mb-1">
@@ -1260,49 +941,28 @@ function PlanDisplay({ c }: { c: Store["cases"][number] }) {
           <Download className="h-4 w-4" /> Descargar Plan de Acción
         </Button>
       </div>
-      <div className="grid sm:grid-cols-2 gap-3 rounded-lg bg-surface border border-line p-4">
-        <PlanMeta label="Elaborado por" value={plan.elaboratedBy} />
-        <PlanMeta label="Tipo de acción" value={plan.actionType} />
-        <PlanMeta label="Área responsable" value={AREA_LABELS[plan.sentToArea ?? c.assigneeArea ?? c.area]} />
-        <PlanMeta label="Prioridad" value={PRIORITY_LABELS[plan.priority]} />
-        <PlanMeta label="Fecha inicio" value={formatDate(plan.startDate)} />
-        <PlanMeta label="Fecha límite" value={formatDate(plan.dueDate)} />
-        <PlanMeta label="Enviado" value={plan.submittedAt ? relativeTime(plan.submittedAt) : "—"} />
+      <div className="grid sm:grid-cols-2 gap-3 text-sm">
+        <div><span className="text-ink-quiet">Código:</span> <span className="font-medium">{planCode}</span></div>
+        <div><span className="text-ink-quiet">Elaborado por:</span> <span className="font-medium">{plan.elaboratedBy}</span></div>
+        <div><span className="text-ink-quiet">Área responsable:</span> <span className="font-medium">{AREA_LABELS[plan.sentToArea ?? c.assigneeArea ?? c.area]}</span></div>
       </div>
-      {plan.description && (
-        <div>
-          <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-1.5">Descripción del plan</p>
-          <p className="text-[13px] text-ink-soft leading-relaxed">{plan.description}</p>
-        </div>
-      )}
-      {plan.observations && (
-        <div>
-          <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-1.5">Observaciones</p>
-          <p className="text-[13px] text-ink-soft leading-relaxed">{plan.observations}</p>
-        </div>
-      )}
-      <div>
-        <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades ({plan.items.length})</p>
+
+      <div className="pt-3 border-t border-line-soft">
+        <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
         <div className="space-y-2">
           {plan.items.map((it, i) => (
-            <div key={it.id} className="rounded-lg border border-line p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-ink-faint">Actividad {i + 1}</p>
-                  <p className="text-[13.5px] font-semibold text-ink mt-0.5">{it.name}</p>
-                  {it.description && <p className="text-[12px] text-ink-soft mt-1 leading-relaxed">{it.description}</p>}
-                </div>
-                <span className={cn("text-[10.5px] font-semibold px-2 py-0.5 rounded-full shrink-0",
-                  it.status === "completado" ? "bg-brand-50 text-brand-800" : it.status === "en_progreso" ? "bg-info-soft text-info-ink" : "bg-surface-2 text-ink-quiet")}>
-                  {it.status === "completado" ? "Finalizada" : it.status === "en_progreso" ? "En proceso" : "Pendiente"}
-                </span>
+            <div key={i} className="rounded-lg bg-surface border border-line p-3 text-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
               </div>
-              <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11.5px] text-ink-quiet">
-                <span className="flex items-center gap-1.5"><UserIcon className="h-3 w-3" /> {it.owner}</span>
-                <span className="flex items-center gap-1.5"><Flag className="h-3 w-3" /> {PRIORITY_LABELS[it.priority]}</span>
-                <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {formatDate(it.startDate)} → {formatDate(it.dueDate)}</span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-ink-quiet">Responsable:</span> {it.owner}</div>
+                <div><span className="text-ink-quiet">Tipo:</span> {(it as any).actionType || "Correctiva"}</div>
+                <div><span className="text-ink-quiet">Área:</span> {(it as any).area ? AREA_LABELS[(it as any).area as Area] : "—"}</div>
+                <div><span className="text-ink-quiet">Inicio:</span> {formatDate(it.startDate)}</div>
+                <div><span className="text-ink-quiet">Fin:</span> {formatDate(it.dueDate)}</div>
               </div>
-              {it.status !== "pendiente" && <div className="mt-2.5"><Progress value={it.progress} showLabel /></div>}
+              {it.description && <div className="mt-2 text-xs"><span className="text-ink-quiet">Descripción:</span> {it.description}</div>}
             </div>
           ))}
         </div>
@@ -1314,14 +974,15 @@ function PlanDisplay({ c }: { c: Store["cases"][number] }) {
 function PlanMeta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-faint">{label}</p>
-      <p className="text-[13px] text-ink font-medium mt-0.5">{value}</p>
+      <p className="text-[11px] text-ink-faint">{label}</p>
+      <p className="text-[13px] font-medium text-ink">{value}</p>
     </div>
   );
 }
 
 /* ─── ETAPA 5 — Ejecución (jefe del área) ─── */
 function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [itemComment, setItemComment] = useState("");
   const [extOpen, setExtOpen] = useState(false);
@@ -1402,7 +1063,15 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
           </div>
         )}
         {c.extensionRequest?.decision === "aprobada" && (
-          <div className="rounded-lg bg-brand-50 border border-brand-200 p-3 mb-4 text-[12.5px] text-brand-800">Ampliación aprobada — nuevo plazo: {formatDate(c.extensionRequest.nuevaFecha)}</div>
+          <div className="rounded-lg bg-brand-100 border-2 border-brand-400 p-4 mb-4">
+            <div className="flex items-center gap-2.5">
+              <Timer className="h-5 w-5 text-brand-700" />
+              <div>
+                <p className="text-[13px] font-bold text-brand-900">Prórroga activa</p>
+                <p className="text-[12px] text-brand-800 mt-0.5">Nuevo plazo: {formatDate(c.extensionRequest.nuevaFecha)}</p>
+              </div>
+            </div>
+          </div>
         )}
         {c.extensionRequest?.decision === "rechazada" && (
           <div className="rounded-lg bg-critical-soft border border-critical/20 p-3 mb-4 text-[12.5px] text-critical-ink">Ampliación rechazada — se mantiene el plazo original.</div>
@@ -1485,6 +1154,7 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
   const [note, setNote] = useState("");
   const [extDecision, setExtDecision] = useState<"aprobada" | "rechazada" | null>(null);
   const [extNote, setExtNote] = useState("");
+  const [extNewDate, setExtNewDate] = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeNote, setCloseNote] = useState("");
 
@@ -1552,8 +1222,18 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
       </Modal>
 
       <Modal open={extDecision !== null} onClose={() => setExtDecision(null)} title={extDecision === "aprobada" ? "Aprobar ampliación" : "Rechazar ampliación"} subtitle={`${c.id} · decisión de SO`} size="sm"
-        footer={<><Button variant="ghost" onClick={() => setExtDecision(null)}>Cancelar</Button><Button variant={extDecision === "rechazada" ? "danger" : "primary"} onClick={() => { if (extDecision) store.reviewExtension(c.id, extDecision, extNote.trim() || undefined); setExtDecision(null); setExtNote(""); }}>Confirmar</Button></>}>
-        <Field label="Nota (opcional)"><Textarea value={extNote} onChange={(e) => setExtNote(e.target.value)} rows={3} /></Field>
+        footer={<><Button variant="ghost" onClick={() => setExtDecision(null)}>Cancelar</Button><Button variant={extDecision === "rechazada" ? "danger" : "primary"} onClick={() => { if (extDecision) store.reviewExtension(c.id, extDecision, extNote.trim() || undefined, extNewDate || c.extensionRequest?.nuevaFecha); setExtDecision(null); setExtNote(""); setExtNewDate(""); }}>Confirmar</Button></>}>
+        {extDecision === "aprobada" && (
+          <>
+            <Field label="Nueva fecha límite" required>
+              <Input type="date" value={extNewDate || c.extensionRequest?.nuevaFecha || ""} onChange={(e) => setExtNewDate(e.target.value)} min={new Date().toISOString().slice(0, 10)} />
+            </Field>
+            <Field label="Nota (opcional)"><Textarea value={extNote} onChange={(e) => setExtNote(e.target.value)} rows={3} /></Field>
+          </>
+        )}
+        {extDecision === "rechazada" && (
+          <Field label="Nota (opcional)"><Textarea value={extNote} onChange={(e) => setExtNote(e.target.value)} rows={3} /></Field>
+        )}
       </Modal>
 
       <Modal open={closeOpen} onClose={() => setCloseOpen(false)} title="Cerrar caso" subtitle={`${c.id} · se generará el historial completo`} size="sm"
@@ -1806,13 +1486,14 @@ function downloadPlan(c: Store["cases"][number]) {
   if (!w) return;
   const rows = plan.items.map((it, i) => `
     <tr>
-      <td>${i + 1}</td>
-      <td><strong>${escapeHtml(it.name)}</strong><br/><span style="color:#666;font-size:11px">${escapeHtml(it.description)}</span></td>
+      <td>PLA-${String(i + 1).padStart(2, '0')}</td>
+      <td><strong>${escapeHtml(it.description)}</strong></td>
       <td>${escapeHtml(it.owner)}</td>
+      <td>${escapeHtml((it as any).actionType || "Correctiva")}</td>
+      <td>${escapeHtml((it as any).area ? AREA_LABELS[(it as any).area as Area] : "—")}</td>
       <td>${formatDate(it.startDate)}</td>
       <td>${formatDate(it.dueDate)}</td>
       <td>${it.status === "completado" ? "Finalizada" : it.status === "en_progreso" ? "En proceso" : "Pendiente"}</td>
-      <td>${it.progress}%</td>
     </tr>`).join("");
   w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Plan de Acción ${c.id}</title>
     <style>
@@ -1825,7 +1506,7 @@ function downloadPlan(c: Store["cases"][number]) {
       table { width: 100%; border-collapse: collapse; font-size: 11.5px; } th, td { border: 1px solid #e3e8e5; padding: 6px 8px; text-align: left; vertical-align: top; }
       th { background: #f6f8f7; font-weight: 600; color: #41504a; } .foot { margin-top: 28px; padding-top: 12px; border-top: 1px solid #e3e8e5; font-size: 10.5px; color: #767f79; }
     </style></head><body>
-    <div class="head"><div class="logo">S1</div><div><h1>Plan de Acción — SIGMA L1</h1><div style="color:#767f79;font-size:12px">Línea 1 del Metro de Lima · Seguridad Operativa</div></div></div>
+    <div class="head"><img src="/logo.png" alt="SIGMA L1" style="width:44px;height:44px;border-radius:10px;" /><div><h1>Plan de Acción — SIGMA L1</h1><div style="color:#767f79;font-size:12px">Línea 1 del Metro de Lima · Seguridad Operativa</div></div></div>
     <h2>Información del expediente</h2>
     <div class="meta">
       <div><b>Código</b><br/>${c.id}</div>
@@ -1834,16 +1515,14 @@ function downloadPlan(c: Store["cases"][number]) {
       <div><b>Área responsable</b><br/>${AREA_LABELS[c.assigneeArea ?? c.area]}</div>
       <div><b>Análisis de riesgo</b><br/>${RISK_LABELS[c.riskLevel]}</div>
       <div><b>Fecha límite</b><br/>${formatDate(c.slaDueDate)}</div>
+      <div><b>Elaborado por</b><br/>${escapeHtml(plan.elaboratedBy)}</div>
+      <div><b>Fecha de creación</b><br/>${formatDateTime(plan.submittedAt ?? c.createdAt)}</div>
     </div>
     <h2>Objetivo del Plan de Acción</h2>
     <p style="font-size:12.5px">${escapeHtml(plan.actionType)} — ${escapeHtml(plan.description)}</p>
-    <div class="meta">
-      <div><b>Elaborado por</b><br/>${escapeHtml(plan.elaboratedBy)}</div>
-      <div><b>Fecha de creación</b><br/>${formatDate(plan.submittedAt ?? c.createdAt)}</div>
-    </div>
     ${plan.observations ? `<h2>Observaciones generales</h2><p style="font-size:12.5px">${escapeHtml(plan.observations)}</p>` : ""}
     <h2>Actividades</h2>
-    <table><thead><tr><th>#</th><th>Actividad</th><th>Responsable</th><th>Inicio</th><th>Límite</th><th>Estado</th><th>Avance</th></tr></thead>
+    <table><thead><tr><th>Código</th><th>Actividad</th><th>Responsable</th><th>Tipo de acción</th><th>Área responsable</th><th>Inicio</th><th>Límite</th><th>Estado</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <div class="foot">Documento generado por SIGMA L1 · ${formatDateTime(new Date().toISOString())}</div>
     </body></html>`);

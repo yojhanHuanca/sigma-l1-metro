@@ -42,6 +42,7 @@ import {
   PRIORITY_LABELS,
   RISK_LABELS,
   type ActionItem,
+  type Area,
   type CaseFile,
   type Evidence,
 } from "@/lib/types";
@@ -50,22 +51,23 @@ import { cn, formatDate, formatDateTime, relativeTime, daysUntil } from "@/lib/u
 export function JefeHome() {
   const s = useStore();
   const { cases, currentUser } = s;
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
 
-  // Casos asignados al jefe: cualquier caso en ejecucion/verificacion asignado a mantenimiento
+  // Casos asignados al jefe: cualquier caso en ejecucion/verificacion o con plan enviado
   const myCases = useMemo(
     () => cases.filter(
-      (c) => (c.stage === "ejecucion" || c.stage === "verificacion") &&
-             (c.assigneeArea === "mantenimiento" || c.assignee === currentUser.name || c.area === "mantenimiento")
+      (c) => (c.stage === "ejecucion" || c.stage === "verificacion" || c.stage === "plan_accion") &&
+             (c.assigneeArea === currentUser.area || c.area === currentUser.area)
     ),
-    [cases, currentUser.name]
+    [cases, currentUser.area]
   );
 
-  const activeCase: CaseFile | undefined = myCases.find((c) => c.stage === "ejecucion") ?? myCases[0];
+  const selectedCase = selectedCaseId ? myCases.find((c) => c.id === selectedCaseId) : myCases[0];
 
   return (
     <JefeShell>
-      {activeCase ? (
-        <PlanExecutionView c={activeCase} s={s} />
+      {selectedCase ? (
+        <PlanExecutionView c={selectedCase} s={s} onBack={() => setSelectedCaseId(null)} allCases={myCases} onSelectCase={setSelectedCaseId} />
       ) : (
         <NoPlanAssigned />
       )}
@@ -78,8 +80,17 @@ function NoPlanAssigned() {
   const { currentUser } = useStore();
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="rounded-2xl bg-brand-gradient text-white p-8 relative overflow-hidden">
+      <div
+        className="rounded-2xl text-white p-8 relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/banner-bg.jpeg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div className="absolute inset-0 bg-mesh opacity-70" />
+        <div className="absolute inset-0 bg-black/40" />
         <div className="relative">
           <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-white/70">Portal del Jefe de Área</p>
           <h1 className="mt-2 text-[26px] font-bold tracking-tight font-display">Hola, {currentUser.name.split(" ")[0]}</h1>
@@ -113,10 +124,11 @@ function NoPlanAssigned() {
 }
 
 /* ─── Vista principal de ejecución ─── */
-function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStore> }) {
+function PlanExecutionView({ c, s, onBack, allCases, onSelectCase }: { c: CaseFile; s: ReturnType<typeof useStore>; onBack: () => void; allCases: CaseFile[]; onSelectCase: (id: string) => void }) {
   const [extOpen, setExtOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [showCaseList, setShowCaseList] = useState(false);
 
   if (!c.actionPlan) {
     return <EmptyState icon={<FileText className="h-5 w-5" />} title="Plan no disponible" description="El plan de acción no está disponible." />;
@@ -141,11 +153,35 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
 
   return (
     <div className="space-y-5">
-      {/* Banner de bienvenida */}
-      <div className="rounded-2xl bg-brand-gradient text-white p-6 relative overflow-hidden">
+      {/* Banner de bienvenida con selector de casos */}
+      <div
+        className="rounded-2xl text-white p-6 relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/banner-bg.jpeg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div className="absolute inset-0 bg-mesh opacity-70" />
+        <div className="absolute inset-0 bg-black/40" />
         <div className="relative max-w-2xl">
-          <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-white/70">Plan de Acción asignado</p>
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-white/70">Plan de Acción asignado</p>
+            {allCases.length > 1 && (
+              <select
+                value={c.id}
+                onChange={(e) => onSelectCase(e.target.value)}
+                className="bg-white/20 border border-white/30 text-white text-[12px] px-3 py-1.5 rounded-lg backdrop-blur-sm cursor-pointer hover:bg-white/30 transition-colors"
+              >
+                {allCases.map((caseItem) => (
+                  <option key={caseItem.id} value={caseItem.id} className="text-ink">
+                    {caseItem.id} - {caseItem.title}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <h1 className="mt-2 text-[26px] font-bold tracking-tight font-display leading-tight">Ejecute su Plan de Acción</h1>
           <p className="text-[13.5px] text-white/80 mt-2 max-w-xl">Tiene un plan asignado por Seguridad Operativa. Registre avances, adjunte evidencias y envíe a verificación al finalizar.</p>
           <div className="mt-4 flex flex-wrap gap-2.5">
@@ -215,7 +251,7 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
                 <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 grid place-items-center"><ClipboardList className="h-4.5 w-4.5" /></div>
                 <div>
                   <h3 className="text-[15px] font-bold text-ink leading-tight">Plan de Acción</h3>
-                  <p className="text-[12px] text-ink-quiet">Información enviada por Seguridad Operativa</p>
+                  <p className="text-[12px] text-ink-quiet">Enviado por Seguridad Operativa</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={() => downloadPlan(c)}>
@@ -223,24 +259,31 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
               </Button>
             </div>
             <div className="p-5">
-              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
-                <PlanMeta label="Objetivo" value={plan.actionType} />
-                <PlanMeta label="Responsable que elaboró" value={plan.elaboratedBy} />
-                <PlanMeta label="Fecha de creación" value={formatDate(plan.submittedAt ?? c.createdAt)} />
-                <PlanMeta label="Nivel de prioridad" value={PRIORITY_LABELS[plan.priority]} />
-                <PlanMeta label="Fecha límite" value={formatDate(plan.dueDate)} />
+              <div className="grid sm:grid-cols-2 gap-3 text-sm mb-4">
+                <div><span className="text-ink-quiet">Código:</span> <span className="font-medium">{c.id}-PLA-01</span></div>
+                <div><span className="text-ink-quiet">Elaborado por:</span> <span className="font-medium">{plan.elaboratedBy}</span></div>
+                <div><span className="text-ink-quiet">Área responsable:</span> <span className="font-medium">{AREA_LABELS[c.assigneeArea ?? c.area]}</span></div>
               </div>
-              <div className="space-y-3 pt-3 border-t border-line-soft">
-                <div>
-                  <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-faint">Descripción general</p>
-                  <p className="text-[13px] text-ink-soft leading-relaxed mt-1">{plan.description || "—"}</p>
+
+              <div className="pt-3 border-t border-line-soft">
+                <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
+                <div className="space-y-2">
+                  {plan.items.map((it, i) => (
+                    <div key={i} className="rounded-lg bg-surface border border-line p-3 text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-ink-quiet">Responsable:</span> {it.owner}</div>
+                        <div><span className="text-ink-quiet">Tipo:</span> {(it as any).actionType || "Correctiva"}</div>
+                        <div><span className="text-ink-quiet">Área:</span> {(it as any).area ? AREA_LABELS[(it as any).area as keyof typeof AREA_LABELS] || "—" : "—"}</div>
+                        <div><span className="text-ink-quiet">Inicio:</span> {formatDate(it.startDate)}</div>
+                        <div><span className="text-ink-quiet">Fin:</span> {formatDate(it.dueDate)}</div>
+                      </div>
+                      {it.description && <div className="mt-2 text-xs"><span className="text-ink-quiet">Descripción:</span> {it.description}</div>}
+                    </div>
+                  ))}
                 </div>
-                {plan.observations && (
-                  <div>
-                    <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-faint">Observaciones generales</p>
-                    <p className="text-[13px] text-ink-soft leading-relaxed mt-1">{plan.observations}</p>
-                  </div>
-                )}
               </div>
             </div>
           </Card>
@@ -260,23 +303,30 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-surface/60 border-b border-line">
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Actividad</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[90px]">Código</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Descripción</th>
                     <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[130px]">Responsable</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[110px]">Inicio</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[110px]">Límite</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[100px]">Tipo</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[100px]">Área</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[90px]">Inicio</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[90px]">Fin</th>
                     <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[100px]">Estado</th>
-                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[120px]">Avance</th>
+                    <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[100px]">Avance</th>
                     <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-faint w-[80px] text-right">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line-soft">
-                  {items.map((it) => (
+                  {items.map((it, i) => (
                     <tr key={it.id} className="hover:bg-surface/40 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-[12px] font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
+                      </td>
                       <td className="px-4 py-3.5 max-w-[260px]">
-                        <p className="text-[13px] font-semibold text-ink truncate">{it.name}</p>
-                        {it.description && <p className="text-[11.5px] text-ink-quiet truncate mt-0.5">{it.description}</p>}
+                        <p className="text-[13px] font-semibold text-ink truncate">{it.description || "—"}</p>
                       </td>
                       <td className="px-4 py-3.5"><span className="text-[12px] text-ink-soft truncate block">{it.owner}</span></td>
+                      <td className="px-4 py-3.5"><span className="text-[12px] text-ink-soft">{(it as any).actionType || "Correctiva"}</span></td>
+                      <td className="px-4 py-3.5"><span className="text-[12px] text-ink-soft">{(it as any).area ? AREA_LABELS[(it as any).area as keyof typeof AREA_LABELS] || "—" : "—"}</span></td>
                       <td className="px-4 py-3.5"><span className="text-[12px] text-ink-soft tabular-nums">{formatDate(it.startDate)}</span></td>
                       <td className="px-4 py-3.5"><span className="text-[12px] text-ink-soft tabular-nums">{formatDate(it.dueDate)}</span></td>
                       <td className="px-4 py-3.5">
@@ -325,13 +375,13 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
                       <div key={it.id} className="relative pl-10">
                         <div className={cn("absolute left-0 top-0.5 h-6 w-6 rounded-full grid place-items-center border-2 border-white shrink-0",
                           done ? "bg-brand-700 text-white" : active ? "bg-info text-white" : "bg-surface-2 text-ink-faint border-line")}>
-                          {done ? <Check className="h-3 w-3" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
+                          {done ? <Check className="h-3 w-3" /> : <span className="text-[10px] font-bold">PLA-{String(i + 1).padStart(2, '0')}</span>}
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-[13px] font-semibold text-ink leading-tight">{it.name}</p>
+                          <p className="text-[13px] font-semibold text-ink leading-tight">{it.description || "—"}</p>
                           <span className="text-[11px] tabular-nums text-ink-quiet shrink-0">{formatDate(it.startDate)} → {formatDate(it.dueDate)}</span>
                         </div>
-                        <p className="text-[11.5px] text-ink-quiet mt-0.5">{it.owner} · {it.progress}%</p>
+                        <p className="text-[11.5px] text-ink-quiet mt-0.5">{it.owner} · {(it as any).actionType || "Correctiva"} · {it.progress}%</p>
                       </div>
                     );
                   })}
@@ -344,14 +394,16 @@ function PlanExecutionView({ c, s }: { c: CaseFile; s: ReturnType<typeof useStor
         {/* Sidebar de acciones */}
         <div className="space-y-5 lg:sticky lg:top-24">
           {!accepted && !isVerification && (
-            <Card className="border-brand-200 bg-brand-50/40">
-              <div className="flex items-start gap-3">
-                <div className="h-9 w-9 rounded-lg bg-brand-700 text-white grid place-items-center shrink-0"><ShieldCheck className="h-4.5 w-4.5" /></div>
-                <div className="flex-1">
-                  <p className="text-[13px] font-semibold text-ink">Plan recibido</p>
-                  <p className="text-[12px] text-ink-soft mt-0.5 mb-3">Acepte el plan para iniciar la ejecución.</p>
-                  <Button size="sm" className="w-full" onClick={() => s.acceptPlan(c.id)}><Check className="h-4 w-4" /> Aceptar Plan</Button>
+            <Card className="border-brand-300 bg-brand-50">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-brand-700 text-white grid place-items-center shrink-0"><ShieldCheck className="h-5 w-5" /></div>
+                  <div className="flex-1">
+                    <p className="text-[14px] font-bold text-ink">Plan recibido</p>
+                    <p className="text-[12.5px] text-ink-soft mt-1">Revise el plan de acción enviado por Seguridad Operativa. Si está de acuerdo, acéptelo. Seguridad Operativa iniciará la ejecución.</p>
+                  </div>
                 </div>
+                <Button size="sm" className="w-full" onClick={() => s.acceptPlan(c.id)}><Check className="h-4 w-4" /> Aceptar Plan</Button>
               </div>
             </Card>
           )}

@@ -190,7 +190,7 @@ interface ActionPlanInput {
   estimatedTime: string;
   priority: Priority;
   observations: string;
-  items: { name: string; description: string; owner: string; priority: Priority; startDate: string; dueDate: string }[];
+  items: { description: string; owner: string; priority: Priority; startDate: string; dueDate: string; actionType: string; area: Area }[];
   sentToArea: Area;
   planCode?: string;
   planStatus?: "pendiente" | "cerrado";
@@ -420,7 +420,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (caseId: string, question: string) => {
       mutate(caseId, (c) =>
         pushTimeline(
-          { ...c, stage: "pendiente_info", pendingInfoRequest: { question, requestedAt: nowISO() } },
+          { ...c, pendingInfoRequest: { question, requestedAt: nowISO() } },
           { kind: "info_solicitada", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Información solicitada al reportante", detail: question }
         )
       );
@@ -528,7 +528,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               observations: plan.observations,
               items: plan.items.map((it) => ({
                 id: uid("ai"),
-                name: it.name,
+                name: `Actividad`,
                 description: it.description,
                 owner: it.owner,
                 priority: it.priority,
@@ -603,18 +603,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [mutate]
   );
 
-  // ─── ETAPA 5 — Ejecución (jefe del área) ────────────────────────────
+  // ─── ETAPA 4 — Aceptación del plan (jefe del área) ─────────────────────
   const acceptPlan = useCallback(
     (caseId: string) => {
       mutate(caseId, (c) =>
         pushTimeline(
-          { ...c, execution: { progress: c.execution?.progress ?? 0, updates: c.execution?.updates ?? [], acceptedByAreaAt: nowISO() } },
-          { kind: "plan_aprobado", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Plan aceptado por el jefe del área", detail: "El área aceptó el plan y comenzó la ejecución." }
+          { ...c, actionPlan: c.actionPlan ? { ...c.actionPlan, reviewDecision: "aprobado", reviewedAt: nowISO() } : c.actionPlan },
+          { kind: "plan_aprobado", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Plan aceptado por el jefe del área", detail: "El área aceptó el plan. Seguridad Operativa debe iniciar la ejecución." }
         )
       );
     },
     [mutate]
   );
+
+  // ─── ETAPA 5 — Ejecución (SO inicia) ────────────────────────────────
 
   const requestExtension = useCallback(
     (caseId: string, ext: ExtensionInput) => {
@@ -630,10 +632,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const reviewExtension = useCallback(
-    (caseId: string, decision: "aprobada" | "rechazada", note?: string) => {
+    (caseId: string, decision: "aprobada" | "rechazada", note?: string, newDate?: string) => {
       mutate(caseId, (c) => {
         const due = c.actionPlan?.dueDate ?? c.slaDueDate;
-        const newDue = decision === "aprobada" && c.extensionRequest ? c.extensionRequest.nuevaFecha : due;
+        const newDue = decision === "aprobada" && newDate ? newDate : due;
         return pushTimeline(
           {
             ...c,
@@ -730,7 +732,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const keepPending = useCallback(
     (caseId: string) => {
       mutate(caseId, (c) =>
-        pushTimeline(c, { kind: "seguimiento", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Caso mantenido pendiente", detail: "Seguridad Operativa decidió mantener el caso pendiente." })
+        pushTimeline(
+          { ...c, stage: "ejecucion" as Stage },
+          { kind: "seguimiento", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Caso mantenido pendiente", detail: "Seguridad Operativa decidió mantener el caso pendiente. Vuelta a ejecución para seguimiento." }
+        )
       );
     },
     [mutate]

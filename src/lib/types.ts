@@ -49,10 +49,10 @@ export const RISK_CATEGORY_TONE: Record<RiskCategory, "critical" | "warning" | "
 };
 
 export const RISK_CATEGORY_COLOR: Record<RiskCategory, string> = {
-  inaceptable: "#ef4444",
-  no_deseable: "#f97316",
-  aceptable_revision: "#eab308",
-  aceptable: "#22c55e",
+  inaceptable: "#D32F2F",
+  no_deseable: "#F9A825",
+  aceptable_revision: "#FFFFFF",
+  aceptable: "#A5D6A7",
 };
 
 // SLA basado en categoría de riesgo
@@ -178,25 +178,12 @@ export const AREA_SOP_LABELS: Record<AreaSOP, string> = {
   vias_obras: "Vías y Obras",
 };
 
-// ─── Responsables de Hallazgo/Investigación/RSO (17 personas) ───
+// ─── Responsables de Hallazgo/Investigación/RSO ───
 export const RESPONSABLES_INVESTIGACION: string[] = [
-  "Antonio Rebaza Lizaraso",
-  "Carlos Barreda Torres",
-  "Emerson Navarrete Sotelo",
   "Gabriel Ferreira Acosta",
-  "Hector Hinostroza Mansilla",
-  "Jesus Alejandro Vielma Ochoa",
-  "Jorge Arévalo Angeles",
-  "Jose Pacombia Pocohuanca",
-  "Juan Castro Velazco",
-  "Karen Peralta Canchis",
-  "Louana Martel Ramos",
-  "Maximo Jesús Alvarez Garcia",
-  "Roberto Pomar Roman",
-  "Ruben Francisco Luque Carbajal",
-  "Teófilo De La Mata Luque",
-  "Victor Ruiz Micha",
-  "Anderson Sandoval Ramirez",
+  "Emerson Navarrete Sotelo",
+  "Gueorgui Bonilla",
+  "Jorma",
 ];
 
 // ─── Responsables de Plan de Acción (6 personas) ───
@@ -623,28 +610,28 @@ export const CARGO_LABELS: Record<Cargo, string> = {
 };
 
 // ─── Roles del Sistema (permisos de acceso) ───
-// Solo 4 roles: controlan qué puede hacer el usuario en la plataforma
-export type SystemRole = "administrador" | "seguridad_operativa" | "auditor" | "consulta";
+// 4 roles oficiales: controlan qué puede hacer el usuario en la plataforma
+export type SystemRole = "administrador" | "seguridad_operativa" | "jefe_area" | "trabajador";
 
 export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   administrador: "Administrador",
   seguridad_operativa: "Seguridad Operativa",
-  auditor: "Auditor",
-  consulta: "Consulta",
+  jefe_area: "Jefe de Área",
+  trabajador: "Trabajador",
 };
 
 export const SYSTEM_ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
-  administrador: "Acceso total al sistema, gestión de usuarios, sincronización y configuración",
-  seguridad_operativa: "Gestión de casos, investigación, planes de acción y cierre del expediente",
-  auditor: "Revisión de cumplimiento, auditorías y trazabilidad de procesos (solo lectura)",
-  consulta: "Acceso de solo lectura a expedientes y reportes",
+  administrador: "Acceso total al sistema, gestión de usuarios, roles, áreas, estaciones, catálogos y configuración",
+  seguridad_operativa: "Gestión de casos, investigación, planes de acción, verificación y cierre del expediente",
+  jefe_area: "Ejecución de planes de acción asignados, registro de avances y evidencias",
+  trabajador: "Reporte de incidentes, consulta de sus casos y respuesta a solicitudes",
 };
 
 export const SYSTEM_ROLE_TONE: Record<SystemRole, "critical" | "brand" | "info" | "neutral"> = {
   administrador: "critical",
   seguridad_operativa: "brand",
-  auditor: "info",
-  consulta: "neutral",
+  jefe_area: "info",
+  trabajador: "neutral",
 };
 
 // Mantener compatibilidad hacia atrás (UserRole se mantiene para no romper otros módulos)

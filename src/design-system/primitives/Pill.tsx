@@ -11,20 +11,20 @@ interface PillProps extends HTMLAttributes<HTMLSpanElement> {
 
 const TONES: Record<NonNullable<PillProps["tone"]>, string> = {
   neutral: "bg-surface-2 text-ink-soft border-line",
-  brand: "bg-brand-50 text-brand-800 border-brand-200",
-  critical: "bg-critical-soft text-critical-ink border-critical/20",
-  warning: "bg-warning-soft text-warning-ink border-warning/25",
-  info: "bg-info-soft text-info-ink border-info/20",
-  success: "bg-brand-50 text-brand-800 border-brand-200",
+  brand: "bg-green-200 text-green-900 border-green-300",
+  critical: "bg-red-600 text-white border-red-700",
+  warning: "bg-yellow-500 text-white border-yellow-600",
+  info: "bg-white text-gray-800 border-gray-300",
+  success: "bg-green-200 text-green-900 border-green-300",
 };
 
 const DOT_COLOR: Record<NonNullable<PillProps["tone"]>, string> = {
   neutral: "bg-ink-faint",
-  brand: "bg-brand-600",
-  critical: "bg-critical",
-  warning: "bg-warning",
-  info: "bg-info",
-  success: "bg-brand-600",
+  brand: "bg-green-600",
+  critical: "bg-red-800",
+  warning: "bg-yellow-600",
+  info: "bg-gray-400",
+  success: "bg-green-600",
 };
 
 export function Pill({ className, tone = "neutral", dot, children, ...props }: PillProps) {

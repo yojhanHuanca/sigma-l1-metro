@@ -49,32 +49,25 @@ import {
   EVENT_LABELS,
   STATIONS,
   TIPO_SOP_LABELS,
-  SUBTIPO_SOP_LABELS,
   type Area,
   type Evidence,
-  type EventType,
   type TipoSOP,
-  type SubtipoSOP,
 } from "@/lib/types";
 
 const STEPS = [
   { id: 0, label: "Tipo", icon: Tag },
   { id: 1, label: "Ubicación", icon: MapPin },
   { id: 2, label: "Descripción", icon: Type },
-  { id: 3, label: "Clasificación", icon: ShieldCheck },
-  { id: 4, label: "Evidencias", icon: Upload },
-  { id: 5, label: "Envío", icon: ShieldCheck },
+  { id: 3, label: "Evidencias", icon: Upload },
+  { id: 4, label: "Envío", icon: ShieldCheck },
 ] as const;
 
-const REPORT_TYPES: { value: EventType; label: string; icon: typeof Tag; hint: string }[] = [
+const REPORT_TYPES: { value: TipoSOP | "otro" | "condicion_insegura" | "acto_inseguro"; label: string; icon: typeof Tag; hint: string }[] = [
   { value: "accidente", label: "Accidente", icon: AlertTriangle, hint: "Lesión o daño" },
   { value: "incidente", label: "Incidente", icon: Flag, hint: "Casi accidente" },
-  { value: "observacion", label: "Observación", icon: Eye, hint: "Comportamiento" },
   { value: "condicion_insegura", label: "Condición Insegura", icon: Wrench, hint: "Estado físico" },
-  { value: "acto_inseguro", label: "Acto Inseguro", icon: AlertTriangle, hint: "Acción de riesgo" },
-  { value: "falla_operativa", label: "Falla Operativa", icon: Wrench, hint: "Equipo o sistema" },
-  { value: "riesgo", label: "Riesgo", icon: ShieldCheck, hint: "Potencial daño" },
   { value: "hallazgo", label: "Hallazgo", icon: Lightbulb, hint: "Detección" },
+  { value: "acto_inseguro", label: "Acto Inseguro", icon: AlertTriangle, hint: "Acción de riesgo" },
   { value: "otro", label: "Otro", icon: HelpCircle, hint: "Otro evento" },
 ];
 
@@ -86,8 +79,17 @@ const LOCATIONS = [
   { value: "Boletería", icon: Building2 },
   { value: "Pasillo", icon: Footprints },
   { value: "Acceso", icon: DoorOpen },
-  { value: "Patio Taller", icon: Warehouse },
   { value: "Otro", icon: MapPin },
+];
+
+const LOCATION_TYPES = [
+  { value: "estacion", label: "Estación", icon: Train },
+  { value: "patio_taller", label: "Patio Taller", icon: Warehouse },
+];
+
+const PATIOS_TALLER = [
+  "Taller Villa El Salvador",
+  "Taller Bayóvar",
 ];
 
 export function NewReportWizard() {
@@ -97,7 +99,8 @@ export function NewReportWizard() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    type: "" as EventType | "",
+    type: "" as TipoSOP | "otro" | "condicion_insegura" | "acto_inseguro" | "",
+    locationType: "" as "estacion" | "patio_taller" | "",
     station: "",
     location: "",
     description: "",
@@ -106,10 +109,6 @@ export function NewReportWizard() {
     contactName: "",
     contactEmail: "",
     contactPhone: "",
-    tipoSOP: "" as TipoSOP | "",
-    subtipoSOP: "" as SubtipoSOP | "",
-    peligro: "",
-    consecuencia: "",
   });
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
@@ -120,11 +119,9 @@ export function NewReportWizard() {
       case 0:
         return !!form.type;
       case 1:
-        return !!form.station;
+        return !!form.locationType && (form.locationType === "patio_taller" ? !!form.station : !!form.station);
       case 2:
         return form.description.trim().length >= 10;
-      case 3:
-        return !!form.tipoSOP && !!form.subtipoSOP;
       default:
         return true;
     }
@@ -150,14 +147,24 @@ export function NewReportWizard() {
 
   const submit = () => {
     const reporterName = form.anonymous ? "Reporte Anónimo" : form.contactName.trim() || "Reportante Identificado";
+    const typeLabel = form.type === "otro" ? "Otro" :
+                     form.type === "condicion_insegura" ? "Condición Insegura" :
+                     form.type === "acto_inseguro" ? "Acto Inseguro" :
+                     EVENT_LABELS[form.type as TipoSOP];
+    const locationLabel = form.locationType === "patio_taller" ? form.station :
+                          form.locationType === "estacion" ? (form.station + (form.location ? ` · ${form.location}` : "")) :
+                          "";
     const newCase = createReport({
-      type: form.type as EventType,
-      title: `${EVENT_LABELS[form.type as EventType]} en ${form.station}`,
+      type: form.type === "otro" ? "hallazgo" as TipoSOP :
+            form.type === "condicion_insegura" ? "hallazgo" as TipoSOP :
+            form.type === "acto_inseguro" ? "hallazgo" as TipoSOP :
+            form.type as TipoSOP,
+      title: `${typeLabel} en ${locationLabel}`,
       description: form.description.trim(),
-      observations: form.location ? `Lugar específico: ${form.location}` : "",
+      observations: form.locationType === "estacion" && form.location ? `Lugar específico: ${form.location}` : "",
       area: "operaciones" as Area, // SO lo reclasificará después
       station: form.station,
-      location: form.location,
+      location: form.locationType === "estacion" ? form.location : "",
       date: new Date().toISOString().slice(0, 10),
       time: new Date().toTimeString().slice(0, 5),
       priority: "media",
@@ -281,34 +288,84 @@ export function NewReportWizard() {
 
           {/* Paso 2 — Ubicación */}
           {step === 1 && (
-            <StepBox title="¿Dónde ocurrió?" subtitle="Indica la estación y el lugar específico (opcional).">
-              <Field label="Estación" required>
-                <Select value={form.station} onChange={(e) => set("station", e.target.value)}>
-                  <option value="">Selecciona una estación…</option>
-                  {STATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </Select>
-              </Field>
-              <div className="mt-4">
-                <p className="text-[12px] font-medium text-ink-soft mb-2">Lugar específico (opcional)</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {LOCATIONS.map((loc) => {
-                    const active = form.location === loc.value;
+            <StepBox title="¿Dónde ocurrió?" subtitle="Indica el tipo de ubicación y los detalles específicos.">
+              <Field label="Tipo de ubicación" required>
+                <div className="grid grid-cols-2 gap-3">
+                  {LOCATION_TYPES.map((type) => {
+                    const active = form.locationType === type.value;
                     return (
                       <button
-                        key={loc.value}
-                        onClick={() => set("location", form.location === loc.value ? "" : loc.value)}
+                        key={type.value}
+                        onClick={() => {
+                          set("locationType", type.value as typeof form.locationType);
+                          // Reset station and location when changing type
+                          set("station", "" as typeof form.station);
+                          set("location", "" as typeof form.location);
+                        }}
                         className={cn(
-                          "p-3 rounded-lg border text-left transition-all flex items-center gap-2.5",
-                          active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-200" : "border-line bg-white hover:border-line-strong hover:bg-surface/50"
+                          "p-4 rounded-xl border text-left transition-all flex flex-col items-start gap-2",
+                          active
+                            ? "border-brand-600 bg-brand-50 ring-2 ring-brand-200"
+                            : "border-line bg-white hover:border-line-strong hover:bg-surface/50"
                         )}
                       >
-                        <loc.icon className={cn("h-4.5 w-4.5", active ? "text-brand-700" : "text-ink-faint")} />
-                        <span className={cn("text-[12.5px] font-medium", active ? "text-brand-900" : "text-ink")}>{loc.value}</span>
+                        <div className={cn(
+                          "h-10 w-10 rounded-lg grid place-items-center shrink-0",
+                          active ? "bg-brand-700 text-white" : "bg-surface-2 text-ink-soft"
+                        )}>
+                          <type.icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className={cn("text-[13.5px] font-semibold", active ? "text-brand-900" : "text-ink")}>{type.label}</p>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </Field>
+
+              {form.locationType === "estacion" && (
+                <>
+                  <Field label="Estación" required className="mt-4">
+                    <Select value={form.station} onChange={(e) => set("station", e.target.value)}>
+                      <option value="">Selecciona una estación…</option>
+                      {STATIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </Select>
+                  </Field>
+                  <div className="mt-4">
+                    <p className="text-[12px] font-medium text-ink-soft mb-2">Lugar específico (opcional)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {LOCATIONS.map((loc) => {
+                        const active = form.location === loc.value;
+                        return (
+                          <button
+                            key={loc.value}
+                            onClick={() => set("location", form.location === loc.value ? "" : loc.value)}
+                            className={cn(
+                              "p-3 rounded-lg border text-left transition-all flex items-center gap-2.5",
+                              active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-200" : "border-line bg-white hover:border-line-strong hover:bg-surface/50"
+                            )}
+                          >
+                            <loc.icon className={cn("h-4.5 w-4.5", active ? "text-brand-700" : "text-ink-faint")} />
+                            <span className={cn("text-[12.5px] font-medium", active ? "text-brand-900" : "text-ink")}>{loc.value}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {form.locationType === "patio_taller" && (
+                <>
+                  <Field label="Patio Taller" required className="mt-4">
+                    <Select value={form.station} onChange={(e) => set("station", e.target.value)}>
+                      <option value="">Selecciona un patio…</option>
+                      {PATIOS_TALLER.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </Select>
+                  </Field>
+                </>
+              )}
             </StepBox>
           )}
 
@@ -332,44 +389,8 @@ export function NewReportWizard() {
             </StepBox>
           )}
 
-          {/* Paso 3 — Clasificación SOP */}
+          {/* Paso 3 — Evidencias */}
           {step === 3 && (
-            <StepBox title="Clasificación SOP" subtitle="Selecciona el tipo y subtipo para ayudar al análisis.">
-              <Field label="Tipo de SOP" required>
-                <Select value={form.tipoSOP} onChange={(e) => set("tipoSOP", e.target.value as TipoSOP)}>
-                  <option value="">Seleccionar…</option>
-                  {(Object.keys(TIPO_SOP_LABELS) as TipoSOP[]).map((t) => (
-                    <option key={t} value={t}>{TIPO_SOP_LABELS[t]}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Subtipo SOP" required className="mt-4">
-                <Select value={form.subtipoSOP} onChange={(e) => set("subtipoSOP", e.target.value as SubtipoSOP)}>
-                  <option value="">Seleccionar…</option>
-                  {(Object.keys(SUBTIPO_SOP_LABELS) as SubtipoSOP[]).map((s) => (
-                    <option key={s} value={s}>{SUBTIPO_SOP_LABELS[s]}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Peligro (opcional)" className="mt-4">
-                <Input
-                  value={form.peligro}
-                  onChange={(e) => set("peligro", e.target.value)}
-                  placeholder="Ej: Superficie mojada sin señalización"
-                />
-              </Field>
-              <Field label="Consecuencia (opcional)" className="mt-4">
-                <Input
-                  value={form.consecuencia}
-                  onChange={(e) => set("consecuencia", e.target.value)}
-                  placeholder="Ej: Lesión leve en muñeca"
-                />
-              </Field>
-            </StepBox>
-          )}
-
-          {/* Paso 4 — Evidencias */}
-          {step === 4 && (
             <StepBox title="¿Deseas adjuntar evidencias?" subtitle="Fotografías o video. Es opcional.">
               <div className="rounded-xl border-2 border-dashed border-line-strong bg-surface/40 p-8 text-center">
                 <div className="h-12 w-12 rounded-xl bg-white border border-line grid place-items-center text-brand-700 mx-auto">
@@ -408,8 +429,8 @@ export function NewReportWizard() {
             </StepBox>
           )}
 
-          {/* Paso 5 — Confirmación y Privacidad */}
-          {step === 5 && (
+          {/* Paso 4 — Confirmación y Privacidad */}
+          {step === 4 && (
             <StepBox title="¿Cómo deseas enviar tu reporte?" subtitle="Elige la modalidad de envío.">
               {/* Opciones de privacidad */}
               <div className="grid sm:grid-cols-2 gap-3 mb-4">
@@ -461,7 +482,7 @@ export function NewReportWizard() {
               <div className="rounded-xl bg-surface border border-line p-4">
                 <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-ink-faint mb-3">Resumen del reporte</p>
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5 text-[12.5px]">
-                  <SummaryRow label="Tipo de Reporte" value={form.type ? EVENT_LABELS[form.type as EventType] : "—"} />
+                  <SummaryRow label="Tipo de Reporte" value={form.type ? (form.type === "otro" ? "Otro" : form.type === "condicion_insegura" ? "Condición Insegura" : form.type === "acto_inseguro" ? "Acto Inseguro" : EVENT_LABELS[form.type as TipoSOP]) : "—"} />
                   <SummaryRow label="Estación" value={form.station || "—"} />
                   <SummaryRow label="Lugar" value={form.location || "—"} />
                   <SummaryRow label="Descripción" value={form.description ? `${form.description.slice(0, 50)}…` : "—"} />

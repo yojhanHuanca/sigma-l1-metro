@@ -16,13 +16,13 @@ const SUBAREAS: Record<Area, string> = {
 // Mapeo de cargo → systemRole por defecto
 const CARGO_TO_ROLE: Record<Cargo, SystemRole> = {
   gerente: "administrador",
-  jefe_area: "seguridad_operativa",
-  supervisor: "seguridad_operativa",
+  jefe_area: "jefe_area",
+  supervisor: "jefe_area",
   analista_so: "seguridad_operativa",
-  tecnico: "consulta",
+  tecnico: "trabajador",
   inspector: "seguridad_operativa",
-  operador: "consulta",
-  auditor: "auditor",
+  operador: "trabajador",
+  auditor: "seguridad_operativa",
 };
 
 function hist(field: string, oldValue: string, newValue: string, daysAgo: number, source: "excel" | "manual" = "excel"): WorkHistoryEntry {
@@ -73,7 +73,7 @@ function mk(
   return {
     id: `usr_${code.toLowerCase().replace(/-/g, "")}`,
     code, dni, firstName, lastName, name,
-    role: sysRole === "consulta" ? "reportante" : "seguridad",
+    role: sysRole === "trabajador" || sysRole === "jefe_area" ? "reportante" : "seguridad",
     userRole: sysRole,
     systemRole: sysRole,
     roles: allRoles,
@@ -145,7 +145,7 @@ export const SEED_USERS: User[] = [
 
 // Trabajadores "nuevos" que aparecerán en la próxima sincronización
 export const NEW_USERS_FROM_EXCEL: Array<Omit<User, "id" | "initials" | "lastSyncAt" | "avatarColor" | "roles" | "workHistory" | "activity" | "name" | "role" | "userRole">> = [
-  { code: "EMP-0036", dni: "45891269", firstName: "Ricardo", lastName: "Paredes", systemRole: "consulta" as SystemRole, area: "mantenimiento" as Area, subarea: "Mecánica", cargo: "Técnico Senior", cargoType: "tecnico" as Cargo, email: "r.paredes@metrolinea1.pe", phone: "+51 944 111 222", status: "activo" as const, laborState: "activo" as LaborState, turno: "mañana" as Turno, contractType: "indefinido" as ContractType, sede: "Patio Taller Villa el Salvador", hiredAt: "2026-07-18", lastSyncBy: "Sistema" },
+  { code: "EMP-0036", dni: "45891269", firstName: "Ricardo", lastName: "Paredes", systemRole: "trabajador" as SystemRole, area: "mantenimiento" as Area, subarea: "Mecánica", cargo: "Técnico Senior", cargoType: "tecnico" as Cargo, email: "r.paredes@metrolinea1.pe", phone: "+51 944 111 222", status: "activo" as const, laborState: "activo" as LaborState, turno: "mañana" as Turno, contractType: "indefinido" as ContractType, sede: "Patio Taller Villa el Salvador", hiredAt: "2026-07-18", lastSyncBy: "Sistema" },
   { code: "EMP-0037", dni: "45891270", firstName: "Lucía", lastName: "Mendoza", systemRole: "seguridad_operativa" as SystemRole, area: "seguridad_fisica" as Area, subarea: "Vigilancia", cargo: "Analista de Seguridad Operativa", cargoType: "analista_so" as Cargo, email: "l.mendoza@metrolinea1.pe", phone: "+51 944 222 333", status: "activo" as const, laborState: "activo" as LaborState, turno: "mañana" as Turno, contractType: "indefinido" as ContractType, sede: "Centro de Control", hiredAt: "2026-07-18", lastSyncBy: "Sistema" },
 ];
 

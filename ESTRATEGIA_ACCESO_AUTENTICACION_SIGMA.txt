@@ -1,0 +1,342 @@
+# ESTRATEGIA DE URLS Y AUTENTICACIÓN - SIGMA L1
+## Sistema de Gestión de Seguridad Operativa
+
+---
+
+### 1. ARQUITECTURA DE ACCESO POR TIPO DE USUARIO
+
+#### 1.1 REPORTES ANÓNIMOS VÍA QR (Público General)
+
+**URL Pública:**
+```
+https://sigma.metrolinea1.pe/reportar
+```
+
+**Flujo de Acceso:**
+1. **Escaneo de QR**: Usuario escanea código QR en estación
+2. **Landing Page**: Redirigido a formulario de reporte anónimo
+3. **Formulario Simplificado**: Campos mínimos obligatorios
+   - Tipo de incidente (selección)
+   - Ubicación (estación detectada automáticamente)
+   - Descripción del incidente
+   - Fecha y hora (automática)
+   - Opcional: Foto del incidente
+4. **Envío**: Sistema genera ID de caso anónimo
+5. **Confirmación**: Usuario recibe código de seguimiento (ej: ANON-2026-001)
+
+**Características:**
+- Sin autenticación requerida
+- Geolocalización automática
+- Tiempo máximo de formulario: 3 minutos
+- Validación básica de campos
+- Notificación de recepción inmediata
+
+**Seguridad:**
+- Rate limiting por IP (máximo 5 reportes/hora)
+- CAPTCHA para prevenir spam
+- Validación de geolocalización dentro de estaciones
+- Encriptación de datos sensibles
+
+---
+
+#### 1.2 TRABAJADORES REGISTRADOS (Reportante)
+
+**URL de Acceso:**
+```
+https://sigma.metrolinea1.pe/login
+```
+
+**Flujo de Autenticación:**
+1. **Login**: 
+   - Usuario: Código de trabajador (ej: TR-001234)
+   - Contraseña: DNI (primer acceso) / Contraseña personalizada
+2. **Verificación**: Sistema valida contra base de datos de RRHH
+3. **Primer Acceso**: Forzar cambio de contraseña
+4. **Dashboard**: Redirigido según perfil asignado
+
+**Tipos de Autenticación:**
+- **Opción A**: Código de trabajador + DNI
+- **Opción B**: Código de trabajador + Contraseña
+- **Opción C**: LDAP/Active Directory (integración corporativa)
+
+**Recuperación de Acceso:**
+- Olvidó contraseña: Enviar a correo corporativo
+- Bloqueo temporal: Contactar RRHH
+- Reinicio: Administrador del sistema
+
+**Permisos por Defecto:**
+- Crear reportes de incidentes
+- Ver sus propios reportes
+- Actualizar información de casos pendientes
+- Recibir notificaciones de sus casos
+
+---
+
+#### 1.3 SEGURIDAD OPERATIVA (Analista SO)
+
+**URL de Acceso:**
+```
+https://sigma.metrolinea1.pe/admin/login
+```
+
+**Flujo de Autenticación:**
+1. **Login Especializado**:
+   - Usuario: Correo corporativo (ej: analista.so@metrolinea1.pe)
+   - Contraseña: Corporativa / LDAP
+2. **Autenticación Multifactor (MFA)**:
+   - Opcional: Código enviado al celular
+   - Opcional: Token físico
+3. **Sesión**: Duración máxima 8 horas con timeout de inactividad
+4. **Dashboard Administrativo**: Acceso completo al sistema
+
+**Niveles de Acceso:**
+- **Nivel Básico**: Casos asignados
+- **Nivel Avanzado**: Todos los casos del sistema
+- **Nivel Supervisor**: Gestión de usuarios y configuración
+
+**Seguridad Adicional:**
+- Registro de auditoría de todas las acciones
+- Limitación de acceso por IP (solo desde red corporativa)
+- Encriptación de comunicaciones
+- Backup de sesiones
+
+---
+
+#### 1.4 JEFE DE ÁREA (Responsable Operativo)
+
+**URL de Acceso:**
+```
+https://sigma.metrolinea1.pe/jefe/login
+```
+
+**Flujo de Autenticación:**
+1. **Login por Área**:
+   - Usuario: Correo corporativo (ej: jefe.mantenimiento@metrolinea1.pe)
+   - Contraseña: Corporativa / LDAP
+2. **Detección Automática de Área**: Sistema asigna área según usuario
+3. **Dashboard Específico**: Solo muestra casos de su área
+4. **Notificaciones**: Alertas de planes pendientes
+
+**Permisos Específicos:**
+- Ver solo planes de acción de su área
+- Aprobar/rechazar planes asignados
+- Registrar avances de ejecución
+- Adjuntar evidencias
+- Solicitar ampliaciones
+
+**Restricciones:**
+- No puede ver casos de otras áreas
+- No puede modificar casos fuera de su jurisdicción
+- Tiempo de sesión: 6 horas máximo
+
+---
+
+### 2. ESTRUCTURA DE URLs DEL SISTEMA
+
+#### 2.1 URLs Públicas
+```
+/                          → Landing page del sistema
+/reportar                  → Formulario de reporte anónimo
+/qr/:estacion              → URL específica por estación (ej: /qr/villa-el-salvador)
+/seguimiento/:codigo      → Seguimiento de caso anónimo (ej: /seguimiento/ANON-2026-001)
+```
+
+#### 2.2 URLs de Autenticación
+```
+/login                     → Login general (trabajadores)
+/login/recuperar           → Recuperación de contraseña
+/login/primero-acceso       → Primer acceso / cambio de contraseña
+/admin/login               → Login administrativo (SO)
+/jefe/login                → Login jefes de área
+```
+
+#### 2.3 URLs del Sistema (Autenticadas)
+```
+/dashboard                 → Dashboard principal
+/casos                     → Lista de casos
+/casos/:id                 → Detalle de caso específico
+/casos/nuevo               → Crear nuevo caso
+/mis-casos                 → Solo casos del usuario (trabajadores)
+/planes                    → Planes de acción
+/planes/:id                → Detalle de plan específico
+/ejecucion                 → Ejecución de planes (jefes de área)
+/investigacion             → Investigaciones (SO)
+/verificacion              → Verificación y cierre (SO)
+/reportes                  → Reportes y estadísticas (SO)
+/admin/usuarios            → Gestión de usuarios (admin)
+/admin/config              → Configuración del sistema (admin)
+```
+
+---
+
+### 3. ESTRATEGIA DE QR EN ESTACIONES
+
+#### 3.1 Distribución de Códigos QR
+- **Ubicación**: Entradas principales, andenes, áreas de espera
+- **Cantidad**: Mínimo 3 QR por estación (entrada, anden norte, anden sur)
+- **Tamaño**: 15x15 cm para fácil escaneo
+- **Material**: Vinil resistente a intemperie
+
+#### 3.2 URLs Específicas por Estación
+```
+/qr/villa-el-salvador     → Estación Villa El Salvador
+/qr/pueblo-libre          → Estación Pueblo Libre
+/qr/miraflores            → Estación Miraflores
+...
+```
+
+#### 3.3 Funcionalidad del QR
+1. **Escaneo**: Detecta estación automáticamente
+2. **Geolocalización**: Confirma ubicación del usuario
+3. **Formulario Pre-cargado**: Estación ya seleccionada
+4. **Envío**: Notifica al SO responsable de esa zona
+
+---
+
+### 4. INTEGRACIÓN CON SISTEMAS EXISTENTES
+
+#### 4.1 Base de Datos de RRHH
+- **Sincronización**: Diaria (cada 24 horas)
+- **Campos**: Código, nombre, DNI, área, cargo, correo, estado
+- **API**: REST para consulta de usuarios
+- **Autenticación**: LDAP/Active Directory
+
+#### 4.2 Sistema de Correo Corporativo
+- **Notificaciones**: Envío automático de alertas
+- **Recuperación**: Enlace para reset de contraseña
+- **Confirmación**: Verificación de identidad
+
+#### 4.3 Sistema de Geolocalización
+- **API**: Google Maps / OpenStreetMap
+- **Precisión**: 10 metros para confirmar ubicación en estación
+- **Validación**: Coordenadas de cada estación pre-configuradas
+
+---
+
+### 5. SEGURIDAD Y CONTROL DE ACCESO
+
+#### 5.1 Políticas de Contraseña
+- **Longitud mínima**: 8 caracteres
+- **Complejidad**: Mayúsculas, minúsculas, números, símbolos
+- **Expiración**: 90 días
+- **Historial**: No repetir últimas 5 contraseñas
+- **Bloqueo**: 5 intentos fallidos = bloqueo 30 minutos
+
+#### 5.2 Control de Sesiones
+- **Timeout**: Inactividad máxima 30 minutos
+- **Concurrentes**: Máximo 2 sesiones por usuario
+- **IP**: Limitación por rango de IP para administradores
+- **HTTPS**: Obligatorio para todas las conexiones
+
+#### 5.3 Auditoría
+- **Registro**: Todas las acciones de usuarios
+- **Logs**: Guardados por 6 meses
+- **Alertas**: Actividades sospechosas notificadas
+- **Reportes**: Auditoría mensual de accesos
+
+---
+
+### 6. FLUJOS DE USUARIO DETALLADOS
+
+#### 6.1 Flujo Reporte Anónimo
+```
+1. Usuario escanea QR en estación
+2. Redirigido a /reportar?estacion=villa-el-salvador
+3. Completa formulario (3 minutos máximo)
+4. Sistema valida campos y geolocalización
+5. Genera caso: ANON-2026-001
+6. Usuario recibe código de seguimiento
+7. Notificación enviada a SO responsable
+8. Usuario puede hacer seguimiento en /seguimiento/ANON-2026-001
+```
+
+#### 6.2 Flujo Trabajador Registrado
+```
+1. Accede a /login
+2. Ingresa código de trabajador y contraseña
+3. Sistema valida contra RRHH
+4. Redirigido a /dashboard
+5. Puede crear caso en /casos/nuevo
+6. Sistema pre-carga sus datos personales
+7. Caso asignado automáticamente a su área
+8. Recibe notificaciones de avances
+```
+
+#### 6.3 Flujo Seguridad Operativa
+```
+1. Accede a /admin/login
+2. Autenticación con MFA
+3. Redirigido a /dashboard (vista completa)
+4. Ve todos los casos del sistema
+5. Puede investigar, crear planes, verificar
+6. Acceso a /reportes para estadísticas
+7. Gestión de usuarios en /admin/usuarios
+```
+
+#### 6.4 Flujo Jefe de Área
+```
+1. Accede a /jefe/login
+2. Sistema detecta su área automáticamente
+3. Redirigido a /dashboard (vista filtrada por área)
+4. Ve solo planes de acción de su área
+5. Acepta/rechaza planes en /planes
+6. Registra avances en /ejecucion
+7. Adjunta evidencias de ejecución
+```
+
+---
+
+### 7. IMPLEMENTACIÓN TÉCNICA
+
+#### 7.1 Stack Tecnológico Recomendado
+- **Frontend**: React + Next.js
+- **Backend**: Node.js + Express
+- **Base de Datos**: PostgreSQL
+- **Autenticación**: JWT + Passport.js
+- **LDAP**: Active Directory integration
+- **Geolocalización**: Google Maps API
+- **QR Generation**: qrcode.js library
+
+#### 7.2 Endpoints API
+```
+POST /api/auth/login          → Autenticación general
+POST /api/auth/admin/login    → Autenticación administrativa
+POST /api/auth/jefe/login     → Autenticación jefes de área
+POST /api/auth/recover        → Recuperación de contraseña
+POST /api/casos/crear         → Crear caso (autenticado)
+POST /api/casos/anonimo       → Crear caso anónimo
+GET  /api/casos/:id           → Obtener caso específico
+GET  /api/planes/area/:area   → Planes por área
+POST /api/planes/aprobar      → Aprobar plan
+POST /api/ejecucion/avance    → Registrar avance
+```
+
+---
+
+### 8. MIGRACIÓN Y Lanzamiento
+
+#### 8.1 Fase 1: Reportes Anónimos (Semana 1-2)
+- Desplegar QRs en estaciones
+- Habilitar formulario público
+- Capacitación al público
+
+#### 8.2 Fase 2: Trabajadores (Semana 3-4)
+- Sincronización con RRHH
+- Creación de cuentas
+- Capacitación a trabajadores
+
+#### 8.3 Fase 3: Seguridad Operativa (Semana 5-6)
+- Configuración de acceso administrativo
+- MFA implementation
+- Capacitación técnica
+
+#### 8.4 Fase 4: Jefes de Área (Semana 7-8)
+- Configuración de acceso por área
+- Pruebas de integración
+- Lanzamiento completo
+
+---
+
+*Documento elaborado para el Sistema de Gestión de Seguridad Operativa (SIGMA) - Línea 1 Metro de Lima*
+*Fecha de elaboración: Julio 2026*
+*Versión: 1.0*

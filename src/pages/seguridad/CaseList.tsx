@@ -108,9 +108,9 @@ export function CaseList() {
     <SegShell>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[22px] font-bold text-ink tracking-tight">Gestión de Casos</h1>
+          <h1 className="text-[22px] font-bold text-ink tracking-tight">Gestión de Reportes</h1>
           <p className="text-[13px] text-ink-quiet mt-1">
-            Todos los casos del sistema. Abra el expediente para gestionar el flujo completo.
+            Todos los reportes del sistema. Abra el expediente para gestionar el flujo completo.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -186,11 +186,7 @@ export function CaseList() {
                 <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint">Título</th>
                 <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[130px]">Reportante</th>
                 <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[120px]">Estación</th>
-                <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[130px]">Área</th>
-                <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[90px]">Prioridad</th>
                 <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[120px]">Estado</th>
-                <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[90px]">SLA</th>
-                <th className="px-4 py-3 text-[11px] font-semibold tracking-wide uppercase text-ink-faint w-[100px] text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -203,7 +199,9 @@ export function CaseList() {
                   <>
                     <tr key={c.id} className="group hover:bg-surface/40 transition-colors">
                       <td className="px-4 py-3.5">
-                        <span className="font-mono text-[12px] font-semibold text-brand-700">{c.id}</span>
+                        <Link to={`/seguridad/casos/${c.id}`} className="font-mono text-[18px] font-bold text-brand-700 hover:underline cursor-pointer">
+                          {c.id}
+                        </Link>
                         <p className="text-[10.5px] text-ink-faint mt-0.5">{formatDate(c.createdAt)}</p>
                       </td>
                       <td className="px-4 py-3.5">
@@ -222,47 +220,12 @@ export function CaseList() {
                         <p className="text-[12.5px] text-ink-soft truncate">{c.station}</p>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="text-[12px] text-ink-soft">{AREA_LABELS[c.area]}</span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <RiskPill risk={c.riskLevel} />
-                      </td>
-                      <td className="px-4 py-3.5">
                         <StagePill stage={c.stage} />
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {c.stage === "cierre" ? (
-                          <span className="text-[11.5px] text-ink-faint">Cerrado</span>
-                        ) : sla === "overdue" ? (
-                          <Pill tone="critical" dot>Vencido {Math.abs(days)}d</Pill>
-                        ) : sla === "soon" ? (
-                          <Pill tone="warning" dot>{days}d</Pill>
-                        ) : (
-                          <span className="text-[11.5px] tabular-nums text-ink-quiet">{days}d</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {hasPlan && (
-                            <button
-                              onClick={() => setExpandedId(isExpanded ? null : c.id)}
-                              className="h-7 px-2 rounded-md text-[11px] font-medium text-ink-soft border border-line hover:bg-surface transition-colors flex items-center gap-1"
-                            >
-                              {isExpanded ? "Ocultar" : "Planes"}
-                              <ChevronDown className={cn("h-3 w-3 transition-transform", isExpanded && "rotate-180")} />
-                            </button>
-                          )}
-                          <Link to={`/seguridad/casos/${c.id}`}>
-                            <Button variant="outline" size="sm" className="opacity-80 group-hover:opacity-100">
-                              Expediente <ArrowRight className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
-                        </div>
                       </td>
                     </tr>
                     {isExpanded && hasPlan && (
                       <tr key={`${c.id}-expanded`} className="bg-surface/60">
-                        <td colSpan={10} className="px-4 py-4">
+                        <td colSpan={6} className="px-4 py-4">
                           <div className="rounded-xl border border-line bg-white p-4">
                             <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-3 flex items-center gap-1.5">
                               <ClipboardList className="h-3.5 w-3.5" /> Planes de Acción asociados
