@@ -27,7 +27,7 @@ export function RoleSelectPage() {
       <div className="relative max-w-[1200px] mx-auto px-6 py-10">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <Logo size={64} />
+          <Logo size={120} />
           <div className="hidden sm:flex items-center gap-2 text-[12px] text-ink-quiet">
             <span className="h-2 w-2 rounded-full bg-brand-500 animate-[pulseSoft_2s_ease-in-out_infinite]" />
             <span>Plataforma operativa · Prototipo de demostración</span>

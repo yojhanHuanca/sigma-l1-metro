@@ -130,7 +130,7 @@ export function Sidebar() {
     <aside className="w-[260px] shrink-0 h-screen sticky top-0 bg-white border-r border-line flex flex-col">
       <div className="px-5 h-16 flex items-center border-b border-line-soft">
         <Link to="/seguridad">
-          <Logo size={48} />
+          <Logo size={120} />
         </Link>
       </div>
 

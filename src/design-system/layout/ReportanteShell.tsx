@@ -39,7 +39,7 @@ export function ReportanteShell({ children }: { children: ReactNode }) {
         <div className="max-w-[1200px] mx-auto h-16 px-6 flex items-center justify-between gap-6">
           <div className="flex items-center gap-8">
             <Link to="/reportante">
-              <Logo size={32} />
+              <Logo size={120} />
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               {NAV.map((item) => (

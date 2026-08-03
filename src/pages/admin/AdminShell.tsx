@@ -89,7 +89,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         {/* Header */}
         <div className="px-5 h-16 flex items-center border-b border-line-soft">
           <Link to="/admin" className="flex items-center gap-2.5">
-            <Logo size={28} withWordmark={false} />
+            <Logo size={120} withWordmark={false} />
             <div className="leading-tight">
               <p className="text-[13px] font-bold tracking-tight font-display text-ink">
                 SIGMA<span className="text-brand-600"> L1</span>

@@ -32,7 +32,7 @@ export function JefeShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-line">
         <div className="max-w-[1300px] mx-auto h-16 px-6 flex items-center justify-between gap-6">
           <Link to="/jefe" className="flex items-center gap-3">
-            <Logo size={32} />
+            <Logo size={120} />
             <span className="hidden sm:inline-block h-6 w-px bg-line" />
             <span className="hidden sm:flex items-center gap-1.5 text-[11.5px] font-medium text-brand-800 bg-brand-50 px-2.5 py-1 rounded-full">
               <Train className="h-3.5 w-3.5" /> Portal del Jefe de Área
