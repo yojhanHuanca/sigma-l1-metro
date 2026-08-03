@@ -7,7 +7,7 @@ interface LogoProps {
   tone?: "light" | "dark";
 }
 
-export function Logo({ size = 100, className, withWordmark = true, tone = "dark" }: LogoProps) {
+export function Logo({ size = 120, className, withWordmark = true, tone = "dark" }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <img
