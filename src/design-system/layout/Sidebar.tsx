@@ -47,8 +47,7 @@ function useBadgeCount() {
   return {
     nuevos: open("recepcion") + open("evaluacion"),
     pendientes: open("pendiente_info") + open("plan_accion"),
-    derivados: open("investigacion"),
-    seguimiento: open("ejecucion") + open("verificacion"),
+    proceso: open("plan_accion") + open("ejecucion"),
     cerrados: open("cierre"),
     alertas: alertCount,
   };
@@ -79,8 +78,7 @@ export function Sidebar() {
       children: [
         { to: "/seguridad/casos?filtro=nuevos", label: "Reportes Nuevos", icon: FilePlus2, badge: counts.nuevos },
         { to: "/seguridad/casos?filtro=pendientes", label: "Reportes Pendientes", icon: Clock, badge: counts.pendientes },
-        { to: "/seguridad/casos?filtro=derivados", label: "Reportes Derivados", icon: Send, badge: counts.derivados },
-        { to: "/seguridad/casos?filtro=seguimiento", label: "En Seguimiento", icon: Activity, badge: counts.seguimiento },
+        { to: "/seguridad/casos?filtro=proceso", label: "Reportes en proceso", icon: Activity, badge: counts.proceso },
         { to: "/seguridad/casos?filtro=cerrados", label: "Reportes Cerrados", icon: CheckCircle2, badge: counts.cerrados },
       ],
     },

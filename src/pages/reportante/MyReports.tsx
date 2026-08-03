@@ -197,6 +197,7 @@ export function MyReports() {
                     </div>
                     <div className="flex items-center gap-1.5 md:hidden">
                       <StagePill stage={c.stage} />
+                      <RiskPill risk={c.riskLevel} />
                     </div>
                   </div>
                 </div>

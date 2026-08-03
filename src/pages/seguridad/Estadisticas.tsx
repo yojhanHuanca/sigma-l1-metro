@@ -41,7 +41,7 @@ export function Estadisticas() {
       const cat = riskCategory(c.riskLevel);
       map.set(cat, (map.get(cat) ?? 0) + 1);
     });
-    return (["inaceptable", "no_deseable", "aceptable_revision", "aceptable"] as const).map((cat) => ({
+    return (["inaceptable", "no_deseable", "aceptable_revision", "aceptable_sin_revision"] as const).map((cat) => ({
       name: RISK_CATEGORY_LABELS[cat],
       value: map.get(cat) ?? 0,
       color: RISK_CATEGORY_COLOR[cat],

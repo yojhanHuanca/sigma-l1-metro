@@ -5,54 +5,61 @@
 export type Role = "reportante" | "seguridad" | "jefe";
 
 // ─── Matriz de Riesgo 5×5 (reemplaza prioridad) ───
-// 1A-1E = Inaceptable (rojo) · 2A-2E = No deseable (naranja)
-// 3A-3E = Aceptable con revisión (amarillo) · 4A-4E = Aceptable (verde)
+// Rojo (Riesgo Muy Alto): 1A, 1B, 1C, 2A, 2B → Inaceptable
+// Amarillo (Riesgo Alto): 1D, 2C, 3A, 3B → No Deseable
+// Blanco (Riesgo Medio): 2D, 3C, 4A → Aceptable con revisión
+// Celeste (Riesgo Bajo): 4B, 4C, 4D, 4E → Aceptable sin revisión
+// Verde (Riesgo Muy Bajo): 1E, 2E, 3D, 3E → Aceptable sin revisión
 export type RiskLevel =
   | "1A" | "1B" | "1C" | "1D" | "1E"
   | "2A" | "2B" | "2C" | "2D" | "2E"
   | "3A" | "3B" | "3C" | "3D" | "3E"
   | "4A" | "4B" | "4C" | "4D" | "4E";
 
-export type RiskCategory = "inaceptable" | "no_deseable" | "aceptable_revision" | "aceptable";
+export type RiskCategory = "inaceptable" | "no_deseable" | "aceptable_revision" | "aceptable_sin_revision";
 
 export const RISK_LABELS: Record<RiskLevel, string> = {
   "1A": "1A — Inaceptable", "1B": "1B — Inaceptable", "1C": "1C — Inaceptable",
-  "1D": "1D — Inaceptable", "1E": "1E — Inaceptable",
+  "1D": "1D — No Deseable", "1E": "1E — Aceptable sin revisión",
   "2A": "2A — Inaceptable", "2B": "2B — Inaceptable",
-  "2C": "2C — No deseable", "2D": "2D — Aceptable c/revisión", "2E": "2E — Aceptable c/revisión",
-  "3A": "3A — No deseable", "3B": "3B — No deseable",
-  "3C": "3C — Aceptable c/revisión", "3D": "3D — Aceptable c/revisión", "3E": "3E — Aceptable c/revisión",
-  "4A": "4A — Aceptable c/revisión", "4B": "4B — Aceptable",
-  "4C": "4C — Aceptable", "4D": "4D — Aceptable", "4E": "4E — Aceptable",
+  "2C": "2C — No Deseable", "2D": "2D — Aceptable con revisión", "2E": "2E — Aceptable sin revisión",
+  "3A": "3A — No Deseable", "3B": "3B — No Deseable",
+  "3C": "3C — Aceptable con revisión", "3D": "3D — Aceptable sin revisión", "3E": "3E — Aceptable sin revisión",
+  "4A": "4A — Aceptable con revisión", "4B": "4B — Aceptable sin revisión",
+  "4C": "4C — Aceptable sin revisión", "4D": "4D — Aceptable sin revisión", "4E": "4E — Aceptable sin revisión",
 };
 
 export function riskCategory(r: RiskLevel): RiskCategory {
-  const n = parseInt(r[0]);
-  if (n === 1) return "inaceptable";
-  if (n === 2) return r[1] <= "B" ? "inaceptable" : r[1] === "C" ? "no_deseable" : "aceptable_revision";
-  if (n === 3) return r[1] <= "B" ? "no_deseable" : "aceptable_revision";
-  return r[1] === "A" ? "aceptable_revision" : "aceptable";
+  // Rojo (Riesgo Muy Alto): 1A, 1B, 1C, 2A, 2B → Inaceptable
+  if (["1A", "1B", "1C", "2A", "2B"].includes(r)) return "inaceptable";
+  // Amarillo (Riesgo Alto): 1D, 2C, 3A, 3B → No Deseable
+  if (["1D", "2C", "3A", "3B"].includes(r)) return "no_deseable";
+  // Blanco (Riesgo Medio): 2D, 3C, 4A → Aceptable con revisión
+  if (["2D", "3C", "4A"].includes(r)) return "aceptable_revision";
+  // Celeste (Riesgo Bajo): 4B, 4C, 4D, 4E → Aceptable sin revisión
+  // Verde (Riesgo Muy Bajo): 1E, 2E, 3D, 3E → Aceptable sin revisión
+  return "aceptable_sin_revision";
 }
 
 export const RISK_CATEGORY_LABELS: Record<RiskCategory, string> = {
   inaceptable: "Inaceptable",
-  no_deseable: "No deseable",
+  no_deseable: "No Deseable",
   aceptable_revision: "Aceptable con revisión",
-  aceptable: "Aceptable",
+  aceptable_sin_revision: "Aceptable sin revisión",
 };
 
-export const RISK_CATEGORY_TONE: Record<RiskCategory, "critical" | "warning" | "info" | "brand"> = {
+export const RISK_CATEGORY_TONE: Record<RiskCategory, "critical" | "warning" | "info" | "brand" | "success"> = {
   inaceptable: "critical",
   no_deseable: "warning",
   aceptable_revision: "info",
-  aceptable: "brand",
+  aceptable_sin_revision: "success",
 };
 
 export const RISK_CATEGORY_COLOR: Record<RiskCategory, string> = {
-  inaceptable: "#D32F2F",
-  no_deseable: "#F9A825",
-  aceptable_revision: "#FFFFFF",
-  aceptable: "#A5D6A7",
+  inaceptable: "#D32F2F", // Rojo
+  no_deseable: "#F9A825", // Amarillo
+  aceptable_revision: "#FFFFFF", // Blanco
+  aceptable_sin_revision: "#A5D6A7", // Verde/Celeste
 };
 
 // SLA basado en categoría de riesgo
@@ -60,7 +67,7 @@ export const RISK_SLA_DAYS: Record<RiskCategory, number> = {
   inaceptable: 3,
   no_deseable: 7,
   aceptable_revision: 14,
-  aceptable: 21,
+  aceptable_sin_revision: 21,
 };
 
 export function slaDaysForRisk(r: RiskLevel): number {
@@ -431,6 +438,13 @@ export interface ActionItem {
   progress: number; // 0..100
   status: "pendiente" | "en_progreso" | "completado";
   comments: string[];
+  extensionRequest?: {
+    motivo: string;
+    justificacion: string;
+    nuevaFecha: string;
+    requestedAt: string;
+    decision?: "aprobado" | "rechazado";
+  };
 }
 
 export interface Investigation {
@@ -500,7 +514,7 @@ export interface CaseFile {
     submittedAt?: string;
     sentToArea?: Area;
     reviewedAt?: string;
-    reviewDecision?: "aprobado" | "rechazado";
+    reviewDecision?: "aprobado" | "rechazado" | "pendiente";
     reviewNote?: string;
     planCode?: string;
     planStatus?: "pendiente" | "cerrado";
@@ -508,6 +522,14 @@ export interface CaseFile {
     scheduledDate?: string;
     annexes?: string;
     secondResponsible?: string;
+    extensionRequest?: {
+      motivo: string;
+      nuevaFecha: string;
+      justificacion: string;
+      requestedAt: string;
+      decision?: "aprobada" | "rechazada";
+      decidedAt?: string;
+    };
   };
   extensionRequest?: {
     motivo: string;

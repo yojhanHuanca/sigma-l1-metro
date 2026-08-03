@@ -32,13 +32,14 @@ import {
 } from "@/lib/types";
 import { cn, formatDate, relativeTime, slaState, daysUntil, PRIORITY_RANK } from "@/lib/utils";
 
-const FILTER_TABS: { id: string; label: string; stages: Stage[] | "all" }[] = [
+const FILTER_TABS: { id: string; label: string; stages: Stage[] | "all" | "extension" }[] = [
   { id: "todos", label: "Todos", stages: "all" },
-  { id: "nuevos", label: "Recepción", stages: ["recepcion", "evaluacion"] },
-  { id: "pendientes", label: "Pendientes", stages: ["pendiente_info", "plan_accion"] },
-  { id: "derivados", label: "Investigación", stages: ["investigacion"] },
-  { id: "seguimiento", label: "Ejecución y Verificación", stages: ["ejecucion", "verificacion"] },
-  { id: "cerrados", label: "Cerrados", stages: ["cierre", "rechazado"] },
+  { id: "nuevos", label: "Reportes Nuevos", stages: ["recepcion", "evaluacion"] },
+  { id: "pendientes", label: "Reportes Pendientes", stages: ["pendiente_info"] },
+  { id: "prorrogas", label: "Prórrogas Solicitadas", stages: "extension" },
+  { id: "investigacion", label: "En Investigación", stages: ["investigacion"] },
+  { id: "verificacion", label: "En Verificación", stages: ["verificacion"] },
+  { id: "cerrados", label: "Reportes Cerrados", stages: ["cierre", "rechazado"] },
 ];
 
 const TYPE_TONE: Record<string, string> = {
@@ -72,7 +73,11 @@ export function CaseList() {
   const filtered = useMemo(() => {
     const cfg = FILTER_TABS.find((f) => f.id === tab) ?? FILTER_TABS[0];
     let list = cases;
-    if (cfg.stages !== "all") list = list.filter((c) => cfg.stages!.includes(c.stage));
+    if (cfg.stages === "extension") {
+      list = list.filter((c) => c.extensionRequest && !c.extensionRequest.decision);
+    } else if (cfg.stages !== "all") {
+      list = list.filter((c) => cfg.stages!.includes(c.stage));
+    }
     if (areaFilter) list = list.filter((c) => c.area === areaFilter);
     if (query.trim()) {
       const q = query.toLowerCase();
@@ -99,6 +104,7 @@ export function CaseList() {
     const map: Record<string, number> = {};
     FILTER_TABS.forEach((f) => {
       if (f.stages === "all") map[f.id] = cases.length;
+      else if (f.stages === "extension") map[f.id] = cases.filter((c) => c.extensionRequest && !c.extensionRequest.decision).length;
       else map[f.id] = cases.filter((c) => f.stages!.includes(c.stage)).length;
     });
     return map;

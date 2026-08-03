@@ -1,15 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Bell, ChevronRight, Train, Calendar } from "lucide-react";
+import { LogOut, Bell, ChevronRight, Train, Calendar, Building2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
 import { Logo } from "@/design-system/brand/Logo";
 import { Avatar } from "@/design-system/primitives/Avatar";
-import { AREA_LABELS } from "@/lib/types";
+import { AREA_LABELS, AREA_HEADS, type Area } from "@/lib/types";
 
 export function JefeShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { notifications, currentUser, setRole, cases } = useStore();
+  const { notifications, currentUser, setRole, cases, jefeArea, setJefeArea } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +80,18 @@ export function JefeShell({ children }: { children: ReactNode }) {
                     <p className="text-[13px] font-semibold text-ink">{currentUser.name}</p>
                     <p className="text-[11.5px] text-ink-quiet truncate">{currentUser.email}</p>
                     <p className="text-[11px] text-brand-700 mt-1">Jefe · {currentUser.area ? AREA_LABELS[currentUser.area] : "Área"}</p>
+                  </div>
+                  <div className="px-3.5 py-2 border-b border-line-soft">
+                    <p className="text-[11px] font-semibold text-ink-faint mb-2">Cambiar área</p>
+                    <select
+                      value={jefeArea}
+                      onChange={(e) => setJefeArea(e.target.value as Area)}
+                      className="w-full h-9 px-2.5 rounded-lg border border-line bg-surface text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    >
+                      {Object.entries(AREA_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
                   </div>
                   <button
                     onClick={() => { setRole(null); navigate("/"); }}

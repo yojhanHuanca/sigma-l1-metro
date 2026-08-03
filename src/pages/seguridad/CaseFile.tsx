@@ -28,6 +28,7 @@ import {
   Flag,
   Building2,
   ChevronRight,
+  ArrowRight,
   AlertTriangle,
   AlertOctagon,
   Timer,
@@ -112,6 +113,8 @@ export function CaseFile() {
   const navigate = useNavigate();
   const store = useStore();
   const c = store.getCase(id ?? "");
+     const [showTimeline, setShowTimeline] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
 
   if (!c) {
     return (
@@ -148,11 +151,6 @@ export function CaseFile() {
             <StagePill stage={c.stage} />
           </div>
           <h1 className="mt-2 text-[22px] font-bold text-ink tracking-tight leading-tight max-w-3xl">{c.title}</h1>
-          <p className="text-[12.5px] text-ink-quiet mt-1.5 flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {c.station} · {c.location}</span>
-            <span className="text-ink-faint">·</span>
-            <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {formatDate(c.date)} · {c.time}</span>
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {sla !== "done" && sla !== "ok" && (
@@ -160,7 +158,9 @@ export function CaseFile() {
               <Timer className="h-3 w-3" /> SLA {sla === "overdue" ? `vencido ${Math.abs(days)}d` : `${days}d`}
             </Pill>
           )}
-          <Button variant="outline" size="sm"><Download className="h-4 w-4" /> Exportar PDF</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowEvidence(true)}><ImageIcon className="h-4 w-4" /> Evidencias</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowTimeline(true)}><Clock className="h-4 w-4" /> Línea de tiempo</Button>
+          <Button variant="outline" size="sm" onClick={() => downloadPlan(c)}><Download className="h-4 w-4" /> Exportar PDF</Button>
         </div>
       </div>
 
@@ -203,11 +203,34 @@ export function CaseFile() {
       </Card>
 
       {/* Tres columnas */}
-      <div className="mt-5 grid lg:grid-cols-[280px_1fr_320px] gap-5 items-start">
+      <div className="mt-5 grid lg:grid-cols-[280px_1fr] gap-5 items-start">
         <LeftPanel c={c} />
         <CenterPanel c={c} store={store} />
-        <RightPanel c={c} />
       </div>
+
+      {/* Modal de Evidencias */}
+      <Modal open={showEvidence} onClose={() => setShowEvidence(false)} title="Evidencias" subtitle={`${c.evidence.length} archivos adjuntos`} size="md">
+        <div className="space-y-1.5">
+          {c.evidence.length === 0 && <p className="text-[12px] text-ink-faint p-2">Sin evidencias adjuntas.</p>}
+          {c.evidence.map((ev) => (
+            <div key={ev.id} className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-surface transition-colors group cursor-pointer">
+              <div className="h-8 w-8 rounded-lg bg-surface-2 text-ink-soft grid place-items-center shrink-0">
+                {ev.kind === "foto" ? <ImageIcon className="h-4 w-4" /> : ev.kind === "video" ? <Video className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-ink truncate">{ev.name}</p>
+                <p className="text-[10.5px] text-ink-quiet">{ev.size}</p>
+              </div>
+              <Download className="h-3.5 w-3.5 text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Modal de Línea de Tiempo */}
+      <Modal open={showTimeline} onClose={() => setShowTimeline(false)} title="Línea de tiempo" subtitle={`${c.timeline.length} eventos`} size="lg">
+        <TimelinePanel c={c} />
+      </Modal>
     </SegShell>
   );
 }
@@ -289,28 +312,6 @@ function LeftPanel({ c }: { c: ReturnType<typeof useStore>["cases"][number] }) {
           </div>
         </Card>
       )}
-
-      <Card padded={false}>
-        <div className="p-4 border-b border-line-soft flex items-center justify-between">
-          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-faint">Evidencias</p>
-          <span className="text-[11px] text-ink-quiet tabular-nums">{c.evidence.length}</span>
-        </div>
-        <div className="p-3 space-y-1.5">
-          {c.evidence.length === 0 && <p className="text-[12px] text-ink-faint p-2">Sin evidencias adjuntas.</p>}
-          {c.evidence.map((ev) => (
-            <div key={ev.id} className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-surface transition-colors group cursor-pointer">
-              <div className="h-8 w-8 rounded-lg bg-surface-2 text-ink-soft grid place-items-center shrink-0">
-                {ev.kind === "foto" ? <ImageIcon className="h-4 w-4" /> : ev.kind === "video" ? <Video className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-ink truncate">{ev.name}</p>
-                <p className="text-[10.5px] text-ink-quiet">{ev.size}</p>
-              </div>
-              <Download className="h-3.5 w-3.5 text-ink-faint opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
@@ -716,6 +717,7 @@ function InvBlock({ label, value, tone }: { label: string; value: string; tone?:
 
 /* ─── ETAPA 4 — Plan de Acción (SO) ─── */
 interface PlanFormItem { description: string; owner: string; priority: Priority; startDate: string; dueDate: string; actionType: string; area: Area; }
+interface PlanFormProps { c: Store["cases"][number]; store: Store; onSubmitted: () => void; onHasChanges: (hasChanges: boolean) => void; }
 
 function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
   const plan = c.actionPlan;
@@ -724,7 +726,7 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
 
   return (
     <div className="space-y-4">
-      {c.investigation && (
+      {c.investigation && c.stage !== "plan_accion" && (
         <StageSection title="Investigación" subtitle="Hallazgos y causa raíz." icon={<Microscope className="h-5 w-5" />}>
           <InvDisplay inv={c.investigation} />
         </StageSection>
@@ -737,14 +739,21 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
       >
         {plan && !formOpen ? (
           <>
+            {c.investigation && (
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Resumen de la investigación</p>
+                <InvDisplay inv={c.investigation} />
+              </div>
+            )}
             <PlanDisplay c={c} />
             <div className="mt-4 flex items-center justify-end gap-2 flex-wrap">
+              <Button variant="ghost" size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "investigacion")}><CornerUpLeft className="h-4 w-4" /> Volver a investigación</Button>
               <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}><FileSearch className="h-4 w-4" /> Modificar plan</Button>
-              <Button variant="outline" size="sm" onClick={() => store.startExecution(c.id)}><Rocket className="h-4 w-4" /> Iniciar ejecución</Button>
+              {plan.reviewDecision === "aprobado" && <Button size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "ejecucion")}><ArrowRight className="h-4 w-4" /> Siguiente</Button>}
             </div>
           </>
         ) : (
-          <PlanForm c={c} store={store} onSubmitted={() => setFormOpen(false)} />
+          <PlanForm c={c} store={store} onSubmitted={() => setFormOpen(false)} onHasChanges={() => {}} />
         )}
       </StageSection>
     </div>
@@ -788,7 +797,7 @@ const RESPONSIBLES = [
   "Victor Ruiz Micha",
 ];
 
-function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store: Store; onSubmitted: () => void }) {
+function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
   const currentUser = store.currentUser;
   const today = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(today);
@@ -802,9 +811,18 @@ function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store:
   const [items, setItems] = useState<PlanFormItem[]>([{ description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
   const [showSummary, setShowSummary] = useState(false);
 
-  const update = (i: number, key: keyof PlanFormItem, v: string) => setItems((p) => p.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)));
-  const add = () => setItems((p) => [...p, { description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
-  const remove = (i: number) => setItems((p) => p.filter((_, idx) => idx !== i));
+  const update = (i: number, key: keyof PlanFormItem, v: string) => {
+    setItems((p) => p.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)));
+    onHasChanges(true);
+  };
+  const add = () => {
+    setItems((p) => [...p, { description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
+    onHasChanges(true);
+  };
+  const remove = (i: number) => {
+    setItems((p) => p.filter((_, idx) => idx !== i));
+    onHasChanges(true);
+  };
 
   const canSend = items.every((it) => it.owner.trim() && it.area);
 
@@ -882,7 +900,7 @@ function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store:
           ))}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
-          <Button variant="outline" size="sm" onClick={add}><Plus className="h-4 w-4" /> Agregar actividad</Button>
+          <Button variant="outline" size="sm" onClick={add}><Plus className="h-4 w-4" /> Agregar plan de acción</Button>
         </div>
       </div>
 
@@ -891,41 +909,47 @@ function PlanForm({ c, store, onSubmitted }: { c: Store["cases"][number]; store:
       </div>
 
       {showSummary && (
-        <div className="mt-6 rounded-xl bg-brand-50 border border-brand-200 p-6 space-y-4">
-          <h3 className="text-[15px] font-semibold text-brand-900">Resumen del Plan de Acción</h3>
-          
-          <div className="grid sm:grid-cols-2 gap-3 text-sm">
-            <div><span className="text-ink-quiet">Código:</span> <span className="font-medium">{planCode}</span></div>
-            <div><span className="text-ink-quiet">Elaborado por:</span> <span className="font-medium">{elaboratedBy}</span></div>
-            <div><span className="text-ink-quiet">Área responsable:</span> <span className="font-medium">{items[0]?.area ? AREA_LABELS[items[0].area] : "—"}</span></div>
-          </div>
+        <Modal 
+          open={showSummary} 
+          onClose={() => setShowSummary(false)} 
+          title="Resumen del Plan de Acción" 
+          subtitle="Revise los detalles antes de enviar al jefe del área"
+          size="lg"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setShowSummary(false)}><CornerUpLeft className="h-4 w-4" /> Corregir planes</Button>
+              <Button onClick={send}><Send className="h-4 w-4" /> Enviar al jefe del área</Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-3 text-sm">
+              <div><span className="text-ink-quiet">Código:</span> <span className="font-medium">{c.id}</span></div>
+              <div><span className="text-ink-quiet">Elaborado por:</span> <span className="font-medium">{elaboratedBy}</span></div>
+            </div>
 
-          <div className="pt-3 border-t border-brand-300">
-            <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
-            <div className="space-y-2">
-              {items.map((it, i) => (
-                <div key={i} className="rounded-lg bg-white border border-brand-200 p-3 text-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
+            <div className="pt-3 border-t border-line-soft">
+              <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Actividades del plan</p>
+              <div className="space-y-2">
+                {items.map((it, i) => (
+                  <div key={i} className="rounded-lg bg-surface border border-line p-3 text-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-brand-700">PLA-{String(i + 1).padStart(2, '0')}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div><span className="text-ink-quiet">Responsable:</span> {it.owner}</div>
+                      <div><span className="text-ink-quiet">Tipo:</span> {it.actionType}</div>
+                      <div><span className="text-ink-quiet">Área:</span> {AREA_LABELS[it.area]}</div>
+                      <div><span className="text-ink-quiet">Inicio:</span> {formatDate(it.startDate)}</div>
+                      <div><span className="text-ink-quiet">Fin:</span> {formatDate(it.dueDate)}</div>
+                    </div>
+                    {it.description && <div className="mt-2 text-xs"><span className="text-ink-quiet">Descripción:</span> {it.description}</div>}
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div><span className="text-ink-quiet">Responsable:</span> {it.owner}</div>
-                    <div><span className="text-ink-quiet">Tipo:</span> {it.actionType}</div>
-                    <div><span className="text-ink-quiet">Área:</span> {AREA_LABELS[it.area]}</div>
-                    <div><span className="text-ink-quiet">Inicio:</span> {formatDate(it.startDate)}</div>
-                    <div><span className="text-ink-quiet">Fin:</span> {formatDate(it.dueDate)}</div>
-                  </div>
-                  {it.description && <div className="mt-2 text-xs"><span className="text-ink-quiet">Descripción:</span> {it.description}</div>}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-3 pt-3 border-t border-brand-300">
-            <Button variant="outline" size="sm" onClick={() => setShowSummary(false)}><CornerUpLeft className="h-4 w-4" /> Corregir planes</Button>
-            <Button size="sm" onClick={send}><Send className="h-4 w-4" /> Enviar al jefe del área</Button>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
@@ -1157,8 +1181,21 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
   const [extNewDate, setExtNewDate] = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
   const [closeNote, setCloseNote] = useState("");
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [targetStage, setTargetStage] = useState<Stage>("verificacion");
+  const [reason, setReason] = useState("");
 
   const pendingExt = c.extensionRequest && !c.extensionRequest.decision;
+
+  const canReopen = reason.trim().length >= 5;
+
+  const doReopen = () => {
+    if (canReopen) {
+      store.reopenCaseWithReason(c.id, targetStage, reason.trim());
+      setReopenOpen(false);
+      setReason("");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -1170,6 +1207,29 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
       {c.actionPlan && (
         <StageSection title="Plan de Acción ejecutado" subtitle="Revise el cumplimiento de las actividades." icon={<ClipboardList className="h-5 w-5" />}>
           <PlanDisplay c={c} />
+        </StageSection>
+      )}
+      {c.execution && (
+        <StageSection title="Detalle de Ejecución" subtitle="Avances registrados por el jefe del área." icon={<Activity className="h-5 w-5" />}>
+          <div className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-3 text-sm">
+              <div><span className="text-ink-quiet">Progreso general:</span> <span className="font-medium">{c.execution.progress}%</span></div>
+              <div><span className="text-ink-quiet">Actualizaciones registradas:</span> <span className="font-medium">{c.execution.updates.length}</span></div>
+            </div>
+            {c.execution.updates.length > 0 && (
+              <div className="pt-3 border-t border-line-soft">
+                <p className="text-[11px] font-semibold tracking-wide uppercase text-ink-faint mb-2.5">Historial de avances</p>
+                <div className="space-y-2">
+                  {c.execution.updates.map((upd, i) => (
+                    <div key={i} className="rounded-lg bg-surface border border-line p-3 text-sm">
+                      <p className="text-[12px] text-ink-soft">{formatDateTime(upd.at)}</p>
+                      <p className="text-[13px] mt-1">{upd.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </StageSection>
       )}
       <StageSection title="Verificación y Cierre" subtitle="Seguridad Operativa revisa evidencias, verifica el cumplimiento y decide el cierre." icon={<Activity className="h-5 w-5" />} action={<Pill tone="warning" dot>En verificación</Pill>}>
@@ -1207,7 +1267,7 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
               <p className="text-[13px] font-semibold text-warning-ink">Mantener Pendiente</p>
               <p className="text-[11.5px] text-ink-soft mt-0.5">Sigue en verificación.</p>
             </button>
-            <button onClick={() => store.reopenCase(c.id)} className="rounded-xl border-2 border-info/20 bg-info-soft p-4 text-left hover:border-info/40 transition-colors">
+            <button onClick={() => setReopenOpen(true)} className="rounded-xl border-2 border-info/20 bg-info-soft p-4 text-left hover:border-info/40 transition-colors">
               <CornerUpLeft className="h-5 w-5 text-info-ink mb-2" />
               <p className="text-[13px] font-semibold text-info-ink">Reabrir Caso</p>
               <p className="text-[11.5px] text-ink-soft mt-0.5">Vuelve a verificación.</p>
@@ -1239,6 +1299,61 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
       <Modal open={closeOpen} onClose={() => setCloseOpen(false)} title="Cerrar caso" subtitle={`${c.id} · se generará el historial completo`} size="sm"
         footer={<><Button variant="ghost" onClick={() => setCloseOpen(false)}>Cancelar</Button><Button onClick={() => { store.closeCase(c.id, closeNote.trim() || undefined); setCloseOpen(false); }}><CheckCircle2 className="h-4 w-4" /> Confirmar cierre</Button></>}>
         <Field label="Nota de cierre (opcional)"><Textarea value={closeNote} onChange={(e) => setCloseNote(e.target.value)} rows={3} /></Field>
+      </Modal>
+
+      <Modal
+        open={reopenOpen}
+        onClose={() => setReopenOpen(false)}
+        title="Reabrir caso para edición"
+        subtitle={`${c.id} · seleccione la etapa a la que desea volver`}
+        size="lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setReopenOpen(false)}>Cancelar</Button>
+            <Button variant="danger" onClick={doReopen} disabled={!canReopen}>
+              <CornerUpLeft className="h-4 w-4" /> Reabrir caso
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg bg-warning-soft border border-warning/30 p-4 flex items-start gap-2.5">
+            <AlertTriangle className="h-5 w-5 text-warning-ink shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[13px] font-semibold text-ink">Reapertura de expediente</p>
+              <p className="text-[12.5px] text-ink-soft mt-1">
+                Al reabrir el caso, el estado cambiará de "Cerrado" a la etapa que seleccione.
+                Se registrará en el historial quién reabrió el caso, cuándo y por qué motivo.
+                Toda la información anterior se conserva.
+              </p>
+            </div>
+          </div>
+
+          <Field label="Etapa a la que desea volver" required>
+            <Select value={targetStage} onChange={(e) => setTargetStage(e.target.value as Stage)}>
+              <option value="verificacion">Verificación — corregir la verificación final</option>
+              <option value="ejecucion">Ejecución — corregir avances o actividades</option>
+              <option value="plan_accion">Plan de Acción — corregir o ajustar el plan</option>
+              <option value="investigacion">Investigación — corregir hallazgos o causa raíz</option>
+              <option value="evaluacion">Evaluación — corregir la evaluación del caso</option>
+              <option value="recepcion">Recepción — revisar desde el inicio</option>
+            </Select>
+          </Field>
+
+          <Field label="Motivo de la reapertura" required hint="Mínimo 5 caracteres — este motivo quedará registrado en el historial">
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={4}
+              placeholder="Explique por qué reabre el caso. Ej: La investigación no identificó la causa raíz correcta. El plan de acción no contempló todas las acciones necesarias. Se detectó información incompleta en el expediente…"
+            />
+          </Field>
+
+          <div className="rounded-lg bg-info-soft border border-info/20 p-3 text-[12px] text-info-ink flex items-start gap-2">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>El caso volverá a la etapa seleccionada. El jefe del área podrá continuar con las actividades pendientes.</p>
+          </div>
+        </div>
       </Modal>
     </div>
   );
@@ -1421,48 +1536,40 @@ function RejectedStage({ c }: { c: Store["cases"][number] }) {
   );
 }
 
-/* ─── Panel derecho — Timeline ─── */
-function RightPanel({ c }: { c: Store["cases"][number] }) {
+/* ─── Timeline Panel (para modal) ─── */
+function TimelinePanel({ c }: { c: Store["cases"][number] }) {
   const events = [...c.timeline].sort((a, b) => +new Date(b.at) - +new Date(a.at));
   const [comment, setComment] = useState("");
   const { addTimelineComment } = useStore();
 
   return (
-    <div className="lg:sticky lg:top-24">
-      <Card padded={false}>
-        <div className="p-4 border-b border-line-soft flex items-center justify-between">
-          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-faint">Línea de tiempo</p>
-          <span className="text-[11px] text-ink-quiet tabular-nums">{c.timeline.length} eventos</span>
-        </div>
-        <div className="p-4 max-h-[600px] overflow-y-auto scrollbar-none">
-          <div className="relative">
-            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-line" />
-            <div className="space-y-4">
-              {events.map((t) => (
-                <div key={t.id} className="relative pl-10">
-                  <div className={cn("absolute left-0 top-1 h-8 w-8 rounded-full grid place-items-center border-2 border-white shrink-0",
-                    t.actorRole === "seguridad" ? "bg-brand-100 text-brand-800" : "bg-surface-2 text-ink-soft")}>
-                    <TimelineIcon kind={t.kind} />
-                  </div>
-                  <p className="text-[12.5px] font-semibold text-ink leading-tight">{t.title}</p>
-                  <p className="text-[11px] text-ink-quiet mt-0.5">{t.actor} · {relativeTime(t.at)}</p>
-                  {t.detail && <p className="text-[12px] text-ink-soft mt-1.5 leading-relaxed bg-surface/60 rounded-md p-2">{t.detail}</p>}
-                </div>
-              ))}
+    <div className="space-y-4">
+      <div className="relative">
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-line" />
+        <div className="space-y-4">
+          {events.map((t) => (
+            <div key={t.id} className="relative pl-10">
+              <div className={cn("absolute left-0 top-1 h-8 w-8 rounded-full grid place-items-center border-2 border-white shrink-0",
+                t.actorRole === "seguridad" ? "bg-brand-100 text-brand-800" : "bg-surface-2 text-ink-soft")}>
+                <TimelineIcon kind={t.kind} />
+              </div>
+              <p className="text-[12.5px] font-semibold text-ink leading-tight">{t.title}</p>
+              <p className="text-[11px] text-ink-quiet mt-0.5">{t.actor} · {relativeTime(t.at)}</p>
+              {t.detail && <p className="text-[12px] text-ink-soft mt-1.5 leading-relaxed bg-surface/60 rounded-md p-2">{t.detail}</p>}
             </div>
-          </div>
+          ))}
         </div>
-        <div className="p-3 border-t border-line-soft">
-          <Field label="Agregar comentario al expediente">
-            <Textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Comentario interno…" />
-          </Field>
-          <div className="mt-2 flex justify-end">
-            <Button size="sm" variant="secondary" disabled={!comment.trim()} onClick={() => { if (comment.trim()) { addTimelineComment(c.id, comment.trim()); setComment(""); } }}>
-              <Paperclip className="h-3.5 w-3.5" /> Agregar
-            </Button>
-          </div>
+      </div>
+      <div className="pt-3 border-t border-line-soft">
+        <Field label="Agregar comentario al expediente">
+          <Textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2} placeholder="Comentario interno…" />
+        </Field>
+        <div className="mt-2 flex justify-end">
+          <Button size="sm" variant="secondary" disabled={!comment.trim()} onClick={() => { if (comment.trim()) { addTimelineComment(c.id, comment.trim()); setComment(""); } }}>
+            <Paperclip className="h-3.5 w-3.5" /> Agregar
+          </Button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

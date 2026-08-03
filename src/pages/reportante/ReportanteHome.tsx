@@ -163,6 +163,10 @@ export function ReportanteHome() {
                 <div className="hidden sm:flex flex-col items-end gap-1.5 shrink-0">
                   <StagePill stage={c.stage} />
                   <RiskPill risk={c.riskLevel} />
+                  <p className="text-[11px] text-ink-quiet flex items-center gap-1">
+                    SLA {sla === "overdue" ? "vencido" : `${Math.ceil((new Date(c.slaDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))}d`}
+                  </p>
+                  <p className="text-[10.5px] text-ink-faint">Última actividad {relativeTime(c.timeline[c.timeline.length - 1]?.at ?? c.createdAt)}</p>
                 </div>
                 <Link to="/reportante/mis-reportes" className="shrink-0">
                   <Button variant="ghost" size="sm">Detalle <ArrowRight className="h-3.5 w-3.5" /></Button>

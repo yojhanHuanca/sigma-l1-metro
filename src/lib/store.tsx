@@ -212,6 +212,8 @@ interface StoreValue {
   role: Role | null;
   setRole: (role: Role | null) => void;
   currentUser: { name: string; role: Role; initials: string; email: string; area?: Area };
+  jefeArea: Area;
+  setJefeArea: (area: Area) => void;
 
   // Reportante
   createReport: (input: NewReportInput) => CaseFile;
@@ -242,7 +244,7 @@ interface StoreValue {
   // ETAPA 5 — Ejecución (jefe del área)
   acceptPlan: (caseId: string) => void;
   requestExtension: (caseId: string, ext: ExtensionInput) => void;
-  reviewExtension: (caseId: string, decision: "aprobada" | "rechazada", note?: string) => void;
+  reviewExtension: (caseId: string, decision: "aprobada" | "rechazada", note?: string, newDate?: string) => void;
   updateActionItem: (caseId: string, itemId: string, patch: { status?: ActionItem["status"]; progress?: number; comment?: string }) => void;
   addExecutionEvidence: (caseId: string, evidence: Evidence) => void;
   completeExecution: (caseId: string) => void;
@@ -255,6 +257,7 @@ interface StoreValue {
   keepPending: (caseId: string) => void;
   reopenCase: (caseId: string) => void;
   reopenCaseWithReason: (caseId: string, targetStage: Stage, reason: string) => void;
+  moveToStageWithoutTimeline: (caseId: string, targetStage: Stage) => void;
 
   // Generales
   addTimelineComment: (caseId: string, comment: string) => void;
@@ -289,6 +292,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [seq, setSeq] = useState<number>(() => load(SEQ_KEY, 15));
   const [users, setUsers] = useState<User[]>(() => loadUsers());
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>(() => load<SyncLog[]>(SYNC_KEY, SEED_SYNC_LOGS));
+  const [jefeArea, setJefeAreaState] = useState<Area>(() => load<Area>("jefeArea", "mantenimiento"));
 
   useEffect(() => save(CASES_KEY, cases), [cases]);
   useEffect(() => save(NOTIF_KEY, notifications), [notifications]);
@@ -296,6 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => save(SEQ_KEY, seq), [seq]);
   useEffect(() => save(USERS_KEY, users), [users]);
   useEffect(() => save(SYNC_KEY, syncLogs), [syncLogs]);
+  useEffect(() => save("jefeArea", jefeArea), [jefeArea]);
 
   const pushNotification = useCallback(
     (n: Omit<Notification, "id" | "at" | "read"> & { at?: string }) => {
@@ -320,16 +325,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   });
 
   const setRole = useCallback((r: Role | null) => setRoleState(r), []);
+  const setJefeArea = useCallback((area: Area) => setJefeAreaState(area), []);
 
   const currentUser = useMemo(() => {
     if (role === "reportante") {
       return { name: "Carlos Núñez", role: "reportante" as Role, initials: "CN", email: "c.nunez@metrolinea1.pe" };
     }
     if (role === "jefe") {
-      return { name: "Jorge Salazar", role: "jefe" as Role, initials: "JS", email: "j.salazar@metrolinea1.pe", area: "mantenimiento" as Area };
+      return { name: AREA_HEADS[jefeArea], role: "jefe" as Role, initials: "JA", email: "jefe@metrolinea1.pe", area: jefeArea };
     }
     return SAFETY_USER;
-  }, [role]);
+  }, [role, jefeArea]);
 
   // ─── Reportante ─────────────────────────────────────────────────────
   const createReport = useCallback(
@@ -590,17 +596,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         pushTimeline(
           {
             ...c,
-            stage: "ejecucion",
-            execution: c.execution ?? { progress: 0, updates: [] },
             actionPlan: c.actionPlan
-              ? { ...c.actionPlan, items: c.actionPlan.items.map((it) => (it.status === "pendiente" ? { ...it, status: "en_progreso" as const, progress: Math.max(it.progress, 10) } : it)) }
+              ? { ...c.actionPlan, reviewDecision: "pendiente", reviewedAt: undefined }
               : c.actionPlan,
           },
-          { kind: "plan_aprobado", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Ejecución iniciada — plan asignado al jefe del área", detail: "El jefe del área debe aceptar el plan y registrar avances." }
+          { kind: "plan_propuesto", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Plan de Acción enviado a Jefe de Área", detail: `Correo enviado a jefe del área. Pendiente de aprobación.` }
         )
       );
+      pushNotification({
+        caseId,
+        title: `Plan de Acción reenviado — ${caseId}`,
+        body: `Seguridad Operativa reenvió el plan de acción para su revisión y aprobación.`,
+        audience: "jefe",
+        kind: "info",
+      });
     },
-    [mutate]
+    [mutate, pushNotification]
   );
 
   // ─── ETAPA 4 — Aceptación del plan (jefe del área) ─────────────────────
@@ -608,12 +619,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (caseId: string) => {
       mutate(caseId, (c) =>
         pushTimeline(
-          { ...c, actionPlan: c.actionPlan ? { ...c.actionPlan, reviewDecision: "aprobado", reviewedAt: nowISO() } : c.actionPlan },
-          { kind: "plan_aprobado", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Plan aceptado por el jefe del área", detail: "El área aceptó el plan. Seguridad Operativa debe iniciar la ejecución." }
+          { 
+            ...c, 
+            stage: "ejecucion",
+            execution: { 
+              ...c.execution, 
+              progress: 0, 
+              updates: [], 
+              acceptedByAreaAt: nowISO() 
+            },
+            actionPlan: c.actionPlan 
+              ? { 
+                  ...c.actionPlan, 
+                  reviewDecision: "aprobado", 
+                  reviewedAt: nowISO(),
+                  items: c.actionPlan.items.map((it) => (it.status === "pendiente" ? { ...it, status: "en_progreso" as const, progress: Math.max(it.progress, 10) } : it))
+                } 
+              : c.actionPlan 
+          },
+          { kind: "plan_aprobado", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Plan aceptado por el jefe del área", detail: "El área aceptó el plan. Ejecución iniciada." }
         )
       );
+      pushNotification({ 
+        caseId, 
+        title: `Plan de Acción aceptado — ${caseId}`, 
+        body: `El jefe del área aceptó el plan. Ejecución iniciada.`, 
+        audience: "seguridad", 
+        kind: "success" 
+      });
     },
-    [mutate]
+    [mutate, pushNotification]
   );
 
   // ─── ETAPA 5 — Ejecución (SO inicia) ────────────────────────────────
@@ -622,11 +657,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (caseId: string, ext: ExtensionInput) => {
       mutate(caseId, (c) =>
         pushTimeline(
-          { ...c, extensionRequest: { ...ext, requestedAt: nowISO() } },
+          { 
+            ...c, 
+            actionPlan: c.actionPlan 
+              ? { 
+                  ...c.actionPlan, 
+                  extensionRequest: { ...ext, requestedAt: nowISO() } 
+                } 
+              : c.actionPlan 
+          },
           { kind: "ampliacion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Solicitud de ampliación de plazo", detail: `Motivo: ${ext.motivo}. Nueva fecha: ${ext.nuevaFecha}. Justificación: ${ext.justificacion}.` }
         )
       );
-      pushNotification({ caseId, title: "Solicitud de ampliación de plazo", body: `${caseId} · el jefe del área solicita ampliación. Pendiente de decisión de SO.`, audience: "seguridad", kind: "warning" });
+      pushNotification({ caseId, title: "Solicitud de ampliación de plazo", body: `${caseId} · el jefe del área solicita ampliación para el plan de acción. Pendiente de decisión de SO.`, audience: "seguridad", kind: "warning" });
     },
     [mutate, pushNotification]
   );
@@ -640,13 +683,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {
             ...c,
             slaDueDate: newDue,
-            actionPlan: c.actionPlan ? { ...c.actionPlan, dueDate: newDue } : c.actionPlan,
+            actionPlan: c.actionPlan ? { ...c.actionPlan, dueDate: newDue, extensionRequest: c.actionPlan.extensionRequest ? { ...c.actionPlan.extensionRequest, decision, decidedAt: nowISO() } : c.actionPlan.extensionRequest } : c.actionPlan,
             extensionRequest: c.extensionRequest ? { ...c.extensionRequest, decision, decidedAt: nowISO() } : c.extensionRequest,
           },
-          { kind: "ampliacion", actor: SAFETY_USER.name, actorRole: "seguridad", title: decision === "aprobada" ? "Ampliación aprobada por SO" : "Ampliación rechazada por SO", detail: note ?? (decision === "aprobada" ? `Nuevo plazo: ${newDue}` : "Se mantiene el plazo original.") }
-        );
+          { kind: "ampliacion", actor: SAFETY_USER.name, actorRole: "seguridad", title: `Solicitud de ampliación ${decision}`, detail: decision === "aprobada" ? `Ampliación aprobada. Nueva fecha: ${newDue}. ${note || ""}` : `Ampliación rechazada. ${note || ""}` }
+        )
       });
-      pushNotification({ caseId, title: decision === "aprobada" ? "Ampliación aprobada" : "Ampliación rechazada", body: `${caseId} · decisión de Seguridad Operativa.`, audience: "both", kind: decision === "aprobada" ? "success" : "warning" });
+      pushNotification({ caseId, title: `Solicitud de ampliación ${decision}`, body: `${caseId} · ${decision === "aprobada" ? "Ampliación aprobada" : "Ampliación rechazada"}.`, audience: "both", kind: decision === "aprobada" ? "success" : "warning" });
     },
     [mutate, pushNotification]
   );
@@ -775,6 +818,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
         )
       );
+      // Notificación a Seguridad Operativa
       pushNotification({
         caseId,
         title: "Caso reabierto para edición",
@@ -782,6 +826,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audience: "seguridad",
         kind: "warning",
       });
+      // Notificación al jefe de área si se reabre a plan_accion o ejecucion
+      if (targetStage === "plan_accion" || targetStage === "ejecucion") {
+        pushNotification({
+          caseId,
+          title: `Caso reabierto — ${caseId}`,
+          body: `Seguridad Operativa reabrió el caso y lo devolvió a ${stageLabels[targetStage]}. Motivo: ${reason.slice(0, 60)}. Se requiere su revisión.`,
+          audience: "jefe",
+          kind: "warning",
+        });
+      }
     },
     [mutate, pushNotification]
   );
@@ -801,8 +855,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addTimelineComment = useCallback(
     (caseId: string, comment: string) => {
       mutate(caseId, (c) =>
-        pushTimeline(c, { kind: "comentario", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Comentario agregado", detail: comment })
+        pushTimeline(c, { kind: "comentario", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Comentario agregado al expediente", detail: comment })
       );
+    },
+    [mutate]
+  );
+
+  const moveToStageWithoutTimeline = useCallback(
+    (caseId: string, targetStage: Stage) => {
+      mutate(caseId, (c) => ({ ...c, stage: targetStage, closedAt: undefined }));
     },
     [mutate]
   );
@@ -1029,6 +1090,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     role,
     setRole,
     currentUser,
+    jefeArea,
+    setJefeArea,
     createReport,
     respondInfoRequest,
     markNotificationRead,
@@ -1056,6 +1119,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     keepPending,
     reopenCase,
     reopenCaseWithReason,
+    moveToStageWithoutTimeline,
     addTimelineComment,
     notifySanction,
     users,

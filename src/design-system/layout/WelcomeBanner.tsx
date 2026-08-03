@@ -35,13 +35,13 @@ export function WelcomeBanner({
       <div className="absolute inset-0 bg-black/40" />
 
       <div className="relative px-7 py-6 sm:px-9 sm:py-7 max-w-2xl">
-        <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-white/70 mb-2">
+        <p className="text-[11px] font-semibold tracking-[0.16em] uppercase text-white mb-2">
           Línea 1 · Metro de Lima
         </p>
-        <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight leading-[1.1] font-display text-balance">
+        <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight leading-[1.1] font-display text-balance text-white">
           {greeting}
         </h1>
-        <p className="text-[13.5px] text-white/80 mt-2.5 max-w-xl">{subtitle}</p>
+        <p className="text-[13.5px] text-white mt-2.5 max-w-xl">{subtitle}</p>
         {meta && <div className="mt-5 flex flex-wrap gap-2.5">{meta}</div>}
       </div>
     </div>

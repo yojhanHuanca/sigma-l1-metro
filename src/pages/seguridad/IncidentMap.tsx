@@ -833,6 +833,7 @@ function fromDomainRisk(risk: DomainRiskLevel): VisualRisk {
   if (category === "inaceptable") return "critico";
   if (category === "no_deseable") return "alto";
   if (category === "aceptable_revision") return "medio";
+  if (category === "aceptable_sin_revision") return "bajo";
   return "bajo";
 }
 

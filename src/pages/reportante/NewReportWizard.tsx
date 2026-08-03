@@ -74,7 +74,7 @@ const REPORT_TYPES: { value: TipoSOP | "otro" | "condicion_insegura" | "acto_ins
 const LOCATIONS = [
   { value: "Andén", icon: Layers },
   { value: "Vagón", icon: Train },
-  { value: "Escalera Mecánica", icon: ArrowUpDown },
+  { value: "Escalera eléctrica", icon: ArrowUpDown },
   { value: "Ascensor", icon: ArrowUpDown },
   { value: "Boletería", icon: Building2 },
   { value: "Pasillo", icon: Footprints },
