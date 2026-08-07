@@ -433,18 +433,25 @@ export interface ActionItem {
   description: string;
   owner: string;
   priority: Priority;
+  area?: Area;
   startDate: string;
   dueDate: string;
   progress: number; // 0..100
   status: "pendiente" | "en_progreso" | "completado";
-  comments: string[];
+  comments: ActivityComment[];
   extensionRequest?: {
-    motivo: string;
     justificacion: string;
     nuevaFecha: string;
     requestedAt: string;
     decision?: "aprobado" | "rechazado";
   };
+}
+
+export interface ActivityComment {
+  id: string;
+  text: string;
+  author: string;
+  at: string;
 }
 
 export interface Investigation {
@@ -499,9 +506,11 @@ export interface CaseFile {
     requiresInvestigation: boolean;
     observations: string;
     updatedAt: string;
+    danger?: string; // Peligro
+    consequence?: string; // Consecuencia
   };
   investigation?: Investigation;
-  actionPlan?: {
+  actionPlans?: {
     elaboratedBy: string;
     actionType: string;
     description: string;
@@ -523,14 +532,25 @@ export interface CaseFile {
     annexes?: string;
     secondResponsible?: string;
     extensionRequest?: {
-      motivo: string;
       nuevaFecha: string;
       justificacion: string;
       requestedAt: string;
       decision?: "aprobada" | "rechazada";
       decidedAt?: string;
     };
-  };
+    verification?: {
+      verifiedAt?: string;
+      verifiedBy?: string;
+      decision?: "aprobado" | "rechazado" | "pendiente";
+      note?: string;
+    };
+    comments?: Array<{
+      id: string;
+      text: string;
+      author: string;
+      at: string;
+    }>;
+  }[];
   extensionRequest?: {
     motivo: string;
     nuevaFecha: string;

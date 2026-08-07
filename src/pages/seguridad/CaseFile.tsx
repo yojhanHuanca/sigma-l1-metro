@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   MapPin,
@@ -23,10 +24,12 @@ import {
   CheckCircle2,
   CornerUpLeft,
   Plus,
+  MessageSquare,
   Download,
   Paperclip,
   Flag,
   Building2,
+  SkipForward,
   ChevronRight,
   ArrowRight,
   AlertTriangle,
@@ -43,6 +46,7 @@ import {
   Briefcase,
   Info,
   Train,
+  Eye,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { SegShell } from "@/design-system/layout/SegShell";
@@ -60,6 +64,7 @@ import {
   LABOR_STATE_LABELS,
   PRIORITY_LABELS,
   RISK_LABELS,
+  riskCategory,
   riskToPriority,
   TIPO_SOP_LABELS,
   SUBTIPO_SOP_LABELS,
@@ -172,25 +177,29 @@ export function CaseFile() {
             const active = i === stepIdx;
             const rejected = c.stage === "rechazado" && i === 0;
             const pendingInfo = c.stage === "pendiente_info" && i === 0;
+            // Detectar si se saltó la investigación
+            const skippedInvestigation = s.stage === "investigacion" && c.evaluation?.requiresInvestigation === false && stepIdx > 2;
             return (
               <div key={s.stage} className="flex items-center shrink-0">
                 <div className="flex items-center gap-2.5 px-2">
                   <div
                     className={cn(
                       "h-9 w-9 rounded-full grid place-items-center shrink-0 transition-all",
-                      done && "bg-brand-700 text-white",
-                      active && !pendingInfo && "bg-info-soft text-info-ink ring-2 ring-info/30 ring-offset-2 ring-offset-white",
-                      pendingInfo && "bg-warning text-warning-ink ring-2 ring-warning/40 ring-offset-2 ring-offset-white",
-                      rejected && "bg-critical text-white",
-                      !done && !active && !rejected && !pendingInfo && "bg-surface-2 text-ink-faint"
+                      skippedInvestigation && "bg-warning text-warning-ink ring-2 ring-warning/40 ring-offset-2 ring-offset-white",
+                      !skippedInvestigation && done && "bg-brand-700 text-white",
+                      !skippedInvestigation && active && !pendingInfo && "bg-info-soft text-info-ink ring-2 ring-info/30 ring-offset-2 ring-offset-white",
+                      !skippedInvestigation && pendingInfo && "bg-warning text-warning-ink ring-2 ring-warning/40 ring-offset-2 ring-offset-white",
+                      !skippedInvestigation && rejected && "bg-critical text-white",
+                      !skippedInvestigation && !done && !active && !rejected && !pendingInfo && "bg-surface-2 text-ink-faint"
                     )}
                   >
-                    {done ? <Check className="h-4 w-4" /> : rejected ? <X className="h-4 w-4" /> : pendingInfo ? <AlertCircle className="h-4 w-4" /> : <s.icon className="h-4 w-4" />}
+                    {skippedInvestigation ? <SkipForward className="h-4 w-4" /> : done ? <Check className="h-4 w-4" /> : rejected ? <X className="h-4 w-4" /> : pendingInfo ? <AlertCircle className="h-4 w-4" /> : <s.icon className="h-4 w-4" />}
                   </div>
                   <div className="hidden md:block">
                     <p className={cn(
                       "text-[12.5px] font-medium leading-tight",
-                      active && !pendingInfo ? "text-info-ink" : pendingInfo ? "text-warning-ink" : done ? "text-ink" : "text-ink-quiet"
+                      skippedInvestigation && "text-warning-ink",
+                      !skippedInvestigation && active && !pendingInfo ? "text-info-ink" : !skippedInvestigation && pendingInfo ? "text-warning-ink" : done ? "text-ink" : "text-ink-quiet"
                     )}>
                       {s.label}
                     </p>
@@ -472,6 +481,8 @@ function EvaluationForm({ c, store }: { c: Store["cases"][number]; store: Store 
   const [classification, setClassification] = useState(c.evaluation?.classification ?? "");
   const [requiresInvestigation, setRequiresInvestigation] = useState(c.evaluation?.requiresInvestigation ?? true);
   const [observations, setObservations] = useState(c.evaluation?.observations ?? "");
+  const [peligro, setPeligro] = useState(c.evaluation?.danger ?? "");
+  const [consecuencia, setConsecuencia] = useState(c.evaluation?.consequence ?? "");
 
   // Valor limpio para guardar (sin el prefijo __otro__:)
   const cleanClassification = classification.startsWith("__otro__:")
@@ -489,55 +500,343 @@ function EvaluationForm({ c, store }: { c: Store["cases"][number]; store: Store 
         </p>
       </div>
 
+      <Field label="Peligro">
+        <Textarea value={peligro} onChange={(e) => setPeligro(e.target.value)} placeholder="Identifique el peligro o fuente de riesgo…" rows={2} />
+      </Field>
+
+      <Field label="Consecuencia">
+        <Textarea value={consecuencia} onChange={(e) => setConsecuencia(e.target.value)} placeholder="Describa la posible consecuencia del peligro…" rows={2} />
+      </Field>
+
       <Field label="Análisis de riesgo (matriz 5×5)" required>
-        <Select value={riskLevel} onChange={(e) => setRiskLevel(e.target.value as RiskLevel)}>
-          {(Object.keys(RISK_LABELS) as RiskLevel[]).map((r) => (
-            <option key={r} value={r}>{RISK_LABELS[r]}</option>
-          ))}
-        </Select>
-        <div className="mt-2 flex items-center gap-2">
-          <RiskPill risk={riskLevel} showCategory />
-          <span className="text-[11px] text-ink-quiet">Gravedad derivada: {PRIORITY_LABELS[gravityFromRisk]}</span>
+        <div className="space-y-4">
+          {/* Matriz 5x5 institucional con CSS Grid */}
+          <div className="max-w-2xl mx-auto">
+            <div className="grid grid-cols-6 gap-1.5">
+              {/* Encabezado vacío */}
+              <div className="flex items-center justify-center text-[10px] font-semibold text-ink-faint bg-surface-2 rounded">
+                Probabilidad \ Severidad
+              </div>
+              
+              {/* Encabezados de columnas (Severidad) */}
+              {[
+                { label: "1", desc: "Catastrófico" },
+                { label: "2", desc: "Crítico" },
+                { label: "3", desc: "Marginal" },
+                { label: "4", desc: "Despreciable" }
+              ].map((col) => (
+                <div key={col.label} className="flex flex-col items-center justify-center text-[10px] font-semibold text-ink-faint bg-surface-2 rounded p-1.5">
+                  <span>{col.label}</span>
+                  <span className="text-[9px] font-normal leading-tight">{col.desc}</span>
+                </div>
+              ))}
+
+              {/* Filas de la matriz */}
+              {[
+                { row: "A", label: "Frecuente" },
+                { row: "B", label: "Probable" },
+                { row: "C", label: "Ocasional" },
+                { row: "D", label: "Remoto" },
+                { row: "E", label: "Improbable" }
+              ].map((rowInfo) => (
+                <>
+                  {/* Encabezado de fila */}
+                  <div key={`row-${rowInfo.row}`} className="flex flex-col items-center justify-center text-[10px] font-semibold text-ink-faint bg-surface-2 rounded p-1.5">
+                    <span>{rowInfo.row}</span>
+                    <span className="text-[9px] font-normal leading-tight">{rowInfo.label}</span>
+                  </div>
+
+                  {/* Celdas de la fila */}
+                  {[1, 2, 3, 4].map((col) => {
+                    const risk = `${col}${rowInfo.row}` as RiskLevel;
+                    const isSelected = riskLevel === risk;
+                    
+                    // Distribución exacta de colores según metodología institucional
+                    const colorClass = (() => {
+                      // Rojo (Inaceptable): 1A, 2A, 1B, 2B, 1C
+                      if ((risk === "1A" || risk === "2A" || risk === "1B" || risk === "2B" || risk === "1C")) {
+                        return "bg-red-500 text-white";
+                      }
+                      // Amarillo (No deseable): 3A, 3B, 2C, 1D
+                      if ((risk === "3A" || risk === "3B" || risk === "2C" || risk === "1D")) {
+                        return "bg-yellow-400 text-yellow-900";
+                      }
+                      // Gris claro (Aceptable con revisión): 4A, 4B, 3C, 2D
+                      if ((risk === "4A" || risk === "4B" || risk === "3C" || risk === "2D")) {
+                        return "bg-gray-200 text-gray-800";
+                      }
+                      // Blanco (Aceptable sin revisión): 4C, 4D, 1E, 2E, 3D, 3E, 4E
+                      if ((risk === "4C" || risk === "4D" || risk === "1E" || risk === "2E" || risk === "3D" || risk === "3E" || risk === "4E")) {
+                        return "bg-white text-gray-800 border border-gray-300";
+                      }
+                      return "bg-gray-100 text-gray-600";
+                    })();
+
+                    return (
+                      <motion.button
+                        key={risk}
+                        onClick={() => setRiskLevel(risk)}
+                        className={cn(
+                          "h-12 rounded text-[12px] font-bold cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md",
+                          colorClass,
+                          isSelected && "ring-2 ring-green-600 shadow-inner"
+                        )}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {risk}
+                      </motion.button>
+                    );
+                  })}
+                </>
+              ))}
+            </div>
+          </div>
+
+          {/* Leyenda horizontal */}
+          <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-red-500"></div>
+              <span className="text-[11px] text-ink-quiet">Inaceptable</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-yellow-400"></div>
+              <span className="text-[11px] text-ink-quiet">No deseable</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-gray-200 border border-gray-300"></div>
+              <span className="text-[11px] text-ink-quiet">Aceptable con revisión</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded bg-white border border-gray-300"></div>
+              <span className="text-[11px] text-ink-quiet">Aceptable sin revisión</span>
+            </div>
+          </div>
+
+          {/* Panel de resultado */}
+          {riskLevel && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="max-w-sm mx-auto rounded-lg border border-line bg-white p-4 shadow-md"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={cn(
+                  "w-10 h-10 rounded flex items-center justify-center text-lg font-bold",
+                  (() => {
+                    const cat = riskCategory(riskLevel);
+                    if (cat === "inaceptable") return "bg-red-500 text-white";
+                    if (cat === "no_deseable") return "bg-yellow-400 text-yellow-900";
+                    if (cat === "aceptable_revision") return "bg-gray-200 text-gray-800";
+                    return "bg-white border border-gray-300 text-gray-800";
+                  })()
+                )}>
+                  {riskLevel}
+                </div>
+                <div>
+                  <p className="text-[10px] text-ink-faint uppercase tracking-wider">Estado</p>
+                  <p className="text-[13px] font-bold text-ink">
+                    {(() => {
+                      const cat = riskCategory(riskLevel);
+                      if (cat === "inaceptable") return "INACEPTABLE";
+                      if (cat === "no_deseable") return "NO DESEABLE";
+                      if (cat === "aceptable_revision") return "ACEPTABLE CON REVISIÓN";
+                      return "ACEPTABLE SIN REVISIÓN";
+                    })()}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-ink-faint uppercase tracking-wider">Gravedad derivada</p>
+                  <p className="text-[12px] font-semibold text-ink">{PRIORITY_LABELS[gravityFromRisk]}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-ink-faint uppercase tracking-wider">Descripción</p>
+                  <p className="text-[12px] text-ink-soft leading-relaxed">
+                    {(() => {
+                      const cat = riskCategory(riskLevel);
+                      if (cat === "inaceptable") return "El riesgo requiere atención inmediata.";
+                      if (cat === "no_deseable") return "El riesgo requiere control y mitigación.";
+                      if (cat === "aceptable_revision") return "El riesgo requiere monitoreo periódico.";
+                      return "El riesgo es aceptable bajo condiciones normales.";
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </Field>
 
       <Field label="Clasificación del caso" required>
-        <Select
-          value={classification.startsWith("__otro__:") ? "__otro__" : classification === "" || PRESET_CLASSIFICATIONS.includes(classification) ? classification : "__otro__"}
-          onChange={(e) => {
-            if (e.target.value === "__otro__") {
-              setClassification("__otro__:");
-            } else {
-              setClassification(e.target.value);
-            }
-          }}
-        >
-          <option value="">Seleccionar clasificación…</option>
-          <optgroup label="Hallazgo">
-            {(Object.keys(SUBTIPO_SOP_LABELS) as SubtipoSOP[]).map((s) => (
-              <option key={s} value={`Hallazgo · ${SUBTIPO_SOP_LABELS[s]}`}>Hallazgo · {SUBTIPO_SOP_LABELS[s]}</option>
-            ))}
-          </optgroup>
-          <optgroup label="Incidente">
-            {(Object.keys(TIPO_INCIDENTE_LABELS) as TipoIncidenteOperativo[]).map((s) => (
-              <option key={s} value={`Incidente · ${TIPO_INCIDENTE_LABELS[s]}`}>Incidente · {TIPO_INCIDENTE_LABELS[s]}</option>
-            ))}
-          </optgroup>
-          <option value="Reporte Voluntario">Reporte Voluntario</option>
-          <option value="Accidente">Accidente</option>
-          <option value="No conformidad">No conformidad</option>
-          <option value="Observación">Observación</option>
-          <option value="__otro__">Otro (escribir…) </option>
-        </Select>
-        {classification.startsWith("__otro__:") && (
-          <Input
-            className="mt-2"
-            value={classification.slice(9)}
-            onChange={(e) => setClassification(`__otro__:${e.target.value}`)}
-            placeholder="Escriba la clasificación personalizada…"
-            autoFocus
-          />
-        )}
+        <div className="space-y-4">
+          {/* Tarjetas visuales de clasificación */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Hallazgos */}
+            <button
+              onClick={() => setClassification("Hallazgo · " + (Object.keys(SUBTIPO_SOP_LABELS)[0] && SUBTIPO_SOP_LABELS[Object.keys(SUBTIPO_SOP_LABELS)[0] as SubtipoSOP]))}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-brand-300 hover:bg-brand-50",
+                classification.startsWith("Hallazgo") ? "border-brand-600 bg-brand-50 ring-2 ring-brand-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <FileSearch className="h-5 w-5 text-brand-700" />
+                <span className="text-[13px] font-semibold text-ink">Hallazgo</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Desviaciones detectadas</p>
+            </button>
+
+            {/* Incidentes */}
+            <button
+              onClick={() => setClassification("Incidente · " + (Object.keys(TIPO_INCIDENTE_LABELS)[0] && TIPO_INCIDENTE_LABELS[Object.keys(TIPO_INCIDENTE_LABELS)[0] as TipoIncidenteOperativo]))}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-warning-300 hover:bg-warning-soft",
+                classification.startsWith("Incidente") ? "border-warning-600 bg-warning-soft ring-2 ring-warning-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-5 w-5 text-warning-ink" />
+                <span className="text-[13px] font-semibold text-ink">Incidente</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Eventos operativos</p>
+            </button>
+
+            {/* Reporte Voluntario */}
+            <button
+              onClick={() => setClassification("Reporte Voluntario")}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-info-300 hover:bg-info-soft",
+                classification === "Reporte Voluntario" ? "border-info-600 bg-info-soft ring-2 ring-info-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Send className="h-5 w-5 text-info-ink" />
+                <span className="text-[13px] font-semibold text-ink">Reporte Voluntario</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Aporte voluntario</p>
+            </button>
+
+            {/* Accidente */}
+            <button
+              onClick={() => setClassification("Accidente")}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-critical-300 hover:bg-critical-soft",
+                classification === "Accidente" ? "border-critical-600 bg-critical-soft ring-2 ring-critical-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <AlertOctagon className="h-5 w-5 text-critical-ink" />
+                <span className="text-[13px] font-semibold text-ink">Accidente</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Evento con daño</p>
+            </button>
+
+            {/* No conformidad */}
+            <button
+              onClick={() => setClassification("No conformidad")}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-brand-300 hover:bg-brand-50",
+                classification === "No conformidad" ? "border-brand-600 bg-brand-50 ring-2 ring-brand-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <X className="h-5 w-5 text-brand-700" />
+                <span className="text-[13px] font-semibold text-ink">No conformidad</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Incumplimiento</p>
+            </button>
+
+            {/* Observación */}
+            <button
+              onClick={() => setClassification("Observación")}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-success-300 hover:bg-success-soft",
+                classification === "Observación" ? "border-success-600 bg-success-soft ring-2 ring-success-200" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="h-5 w-5 text-success-ink" />
+                <span className="text-[13px] font-semibold text-ink">Observación</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Nota visual</p>
+            </button>
+
+            {/* Otro */}
+            <button
+              onClick={() => setClassification("__otro__:")}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:border-line-strong hover:bg-surface-2",
+                classification.startsWith("__otro__") ? "border-line-strong bg-surface-2 ring-2 ring-line" : "border-line bg-white"
+              )}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Plus className="h-5 w-5 text-ink-soft" />
+                <span className="text-[13px] font-semibold text-ink">Otro</span>
+              </div>
+              <p className="text-[11px] text-ink-quiet">Clasificación personalizada</p>
+            </button>
+          </div>
+
+          {/* Subcategorías cuando se selecciona Hallazgo o Incidente */}
+          {classification.startsWith("Hallazgo") && (
+            <div className="mt-3 p-4 bg-surface-2 rounded-lg">
+              <p className="text-[12px] font-semibold text-ink-faint mb-3">Tipo de hallazgo:</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(SUBTIPO_SOP_LABELS) as SubtipoSOP[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setClassification(`Hallazgo · ${SUBTIPO_SOP_LABELS[s]}`)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-[12px] font-medium border transition-all hover:border-brand-300 hover:bg-brand-50",
+                      classification === `Hallazgo · ${SUBTIPO_SOP_LABELS[s]}` ? "border-brand-600 bg-brand-50 text-brand-800" : "border-line bg-white text-ink-soft"
+                    )}
+                  >
+                    {SUBTIPO_SOP_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {classification.startsWith("Incidente") && (
+            <div className="mt-3 p-4 bg-surface-2 rounded-lg">
+              <p className="text-[12px] font-semibold text-ink-faint mb-3">Tipo de incidente:</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(TIPO_INCIDENTE_LABELS) as TipoIncidenteOperativo[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setClassification(`Incidente · ${TIPO_INCIDENTE_LABELS[s]}`)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-[12px] font-medium border transition-all hover:border-warning-300 hover:bg-warning-soft",
+                      classification === `Incidente · ${TIPO_INCIDENTE_LABELS[s]}` ? "border-warning-600 bg-warning-soft text-warning-ink" : "border-line bg-white text-ink-soft"
+                    )}
+                  >
+                    {TIPO_INCIDENTE_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input para clasificación personalizada */}
+          {classification.startsWith("__otro__:") && (
+            <div className="mt-3">
+              <Input
+                value={classification.slice(9)}
+                onChange={(e) => setClassification(`__otro__:${e.target.value}`)}
+                placeholder="Escriba la clasificación personalizada…"
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
       </Field>
 
       <Field label="¿Requiere investigación?">
@@ -560,7 +859,7 @@ function EvaluationForm({ c, store }: { c: Store["cases"][number]; store: Store 
       )}
 
       <div className="pt-3 border-t border-line-soft flex items-center justify-end gap-2">
-        <Button size="sm" disabled={!canSave} onClick={() => store.saveEvaluation(c.id, { gravity: gravityFromRisk, riskLevel, classification: cleanClassification, requiresInvestigation, observations: observations.trim() })}>
+        <Button size="sm" disabled={!canSave} onClick={() => store.saveEvaluation(c.id, { gravity: gravityFromRisk, riskLevel, classification: cleanClassification, requiresInvestigation, observations: observations.trim(), danger: peligro.trim(), consequence: consecuencia.trim() })}>
           <Check className="h-4 w-4" /> {requiresInvestigation ? "Guardar y pasar a Investigación" : "Guardar y pasar a Plan de Acción"}
         </Button>
       </div>
@@ -604,11 +903,12 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
   };
 
   if (c.investigation && !editMode) {
+    const hasActionPlan = c.actionPlans && c.actionPlans.length > 0;
     return (
       <div className="space-y-4">
         <StageSection title="Investigación registrada" subtitle="Hallazgos, causa raíz y conclusiones registrados por Seguridad Operativa." icon={<Microscope className="h-5 w-5" />} action={
           <div className="flex items-center gap-2">
-            <Pill tone="brand" dot>Completado</Pill>
+            <Pill tone={hasActionPlan ? "brand" : "warning"} dot>{hasActionPlan ? "Completado" : "Pendiente Plan"}</Pill>
             <Button variant="outline" size="sm" onClick={() => { setInv(c.investigation!); setEditMode(true); }}>
               <FileSearch className="h-4 w-4" /> Editar
             </Button>
@@ -616,19 +916,18 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
         }>
           <InvDisplay inv={c.investigation} />
         </StageSection>
-        <ResponsiblesAndWorkers c={c} store={store} readOnly />
+        <div className="flex items-center justify-end">
+          <Button variant="ghost" size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "evaluacion")}><CornerUpLeft className="h-4 w-4" /> Volver a evaluación</Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* 2 tarjetas: Investigador, Jefe Responsable */}
-      <ResponsiblesAndWorkers c={c} store={store} />
-
       <StageSection title="Investigación del caso" subtitle="Seguridad Operativa registra hallazgos, causa raíz, análisis, conclusiones y evidencias." icon={<Microscope className="h-5 w-5" />} action={<Pill tone="info" dot>En curso</Pill>}>
         <div className="space-y-4">
-          <Field label="Hallazgos" required>
+          <Field label="Descripción de evento" required>
             <Textarea value={inv.findings} onChange={(e) => set("findings", e.target.value)} placeholder="¿Qué se encontró durante la inspección?" rows={3} />
           </Field>
           <Field label="Causa raíz" required>
@@ -651,6 +950,7 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
           </div>
 
           <div className="pt-3 border-t border-line-soft flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "evaluacion")}><CornerUpLeft className="h-4 w-4" /> Volver a evaluación</Button>
             <Button onClick={() => canSave && store.saveInvestigation(c.id, inv)} disabled={!canSave}>
               <Check className="h-4 w-4" /> Guardar investigación y pasar a Plan de Acción
             </Button>
@@ -661,42 +961,10 @@ function InvestigationStage({ c, store }: { c: Store["cases"][number]; store: St
   );
 }
 
-/* ─── Tarjeta: Investigador SO ─── */
-function ResponsiblesAndWorkers({ c, store, readOnly }: { c: Store["cases"][number]; store: Store; readOnly?: boolean }) {
-  const currentUser = store.currentUser;
-  const investigatorName = currentUser.name;
-
-  return (
-    <div className="grid lg:grid-cols-1 gap-4">
-      {/* Investigador SO */}
-      <Card className="p-5">
-        <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-line-soft">
-          <div className="h-9 w-9 rounded-lg bg-brand-50 text-brand-700 grid place-items-center shrink-0"><ShieldCheck className="h-4.5 w-4.5" /></div>
-          <div className="min-w-0">
-            <p className="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-ink-faint">Investigador SO</p>
-            <p className="text-[13px] font-bold text-ink leading-tight">Responsable de Hallazgo / Investigación / RSO</p>
-          </div>
-        </div>
-        {/* Investigador asignado */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-12 w-12 rounded-full bg-brand-700 text-white grid place-items-center text-[14px] font-bold shrink-0">
-            {(investigatorName || "?").split(" ").map((p) => p[0] || "").slice(0, 2).join("")}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-semibold text-ink truncate">{investigatorName}</p>
-            <p className="text-[12px] text-ink-quiet mt-0.5">Seguridad Operativa</p>
-            <div className="mt-1.5"><Pill tone="brand" dot>Asignado</Pill></div>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 function InvDisplay({ inv }: { inv: Investigation }) {
   return (
     <div className="space-y-4">
-      <InvBlock label="Hallazgos" value={inv.findings} />
+      <InvBlock label="Descripción de evento" value={inv.findings} />
       <InvBlock label="Causa raíz" value={inv.rootCause} tone="critical" />
       {inv.technicalDescription && <InvBlock label="Análisis técnico" value={inv.technicalDescription} />}
       <InvBlock label="Conclusiones" value={inv.conclusions} />
@@ -720,9 +988,17 @@ interface PlanFormItem { description: string; owner: string; priority: Priority;
 interface PlanFormProps { c: Store["cases"][number]; store: Store; onSubmitted: () => void; onHasChanges: (hasChanges: boolean) => void; }
 
 function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
-  const plan = c.actionPlan;
+  const plan = c.actionPlans?.[0];
   const [formOpen, setFormOpen] = useState(!plan);
   const [editPlanMode, setEditPlanMode] = useState(false);
+  const [comment, setComment] = useState("");
+
+  const addComment = () => {
+    if (comment.trim()) {
+      store.addPlanComment(c.id, 0, comment.trim());
+      setComment("");
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -746,6 +1022,45 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
               </div>
             )}
             <PlanDisplay c={c} />
+            
+            {/* Comentarios de Seguridad Operativa - Solo en ejecución */}
+            {c.stage === "ejecucion" && (
+              <div className="mt-6 pt-4 border-t border-line-soft">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">
+                  Comentarios de Seguridad Operativa
+                  {plan?.comments && plan.comments.length > 0 && <span className="ml-1.5 text-ink-quiet">({plan.comments.length})</span>}
+                </p>
+                <div className="space-y-2 mb-3">
+                  {plan?.comments && plan.comments.length > 0 ? (
+                    plan.comments.map((comment, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-surface-2 rounded-lg">
+                        <span className="grid place-items-center h-8 w-8 rounded-lg bg-surface-3 text-ink-quiet">
+                          <Send className="h-4 w-4" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] font-medium text-ink truncate">{comment.text}</p>
+                          <p className="text-[11px] text-ink-quiet">{comment.author} · {formatDate(comment.at)}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[12.5px] text-ink-quiet bg-surface rounded-lg p-3 border border-dashed border-line">No hay comentarios registrados</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Agregar comentario..."
+                    className="flex-1 text-[12.5px] px-3 py-2 rounded-lg border border-line bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                  />
+                  <Button size="sm" onClick={addComment} className="bg-brand-700 hover:bg-brand-800 transition-colors">
+                    <Plus className="h-3 w-3 mr-1" /> Agregar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 flex items-center justify-end gap-2 flex-wrap">
               <Button variant="ghost" size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "investigacion")}><CornerUpLeft className="h-4 w-4" /> Volver a investigación</Button>
               <Button variant="outline" size="sm" onClick={() => setFormOpen(true)}><FileSearch className="h-4 w-4" /> Modificar plan</Button>
@@ -753,7 +1068,12 @@ function PlanStage({ c, store }: { c: Store["cases"][number]; store: Store }) {
             </div>
           </>
         ) : (
-          <PlanForm c={c} store={store} onSubmitted={() => setFormOpen(false)} onHasChanges={() => {}} />
+          <>
+            <PlanForm c={c} store={store} onSubmitted={() => setFormOpen(false)} onHasChanges={() => {}} />
+            <div className="mt-4 flex items-center justify-end gap-2 flex-wrap">
+              <Button variant="ghost" size="sm" onClick={() => store.moveToStageWithoutTimeline(c.id, "investigacion")}><CornerUpLeft className="h-4 w-4" /> Volver a investigación</Button>
+            </div>
+          </>
         )}
       </StageSection>
     </div>
@@ -793,23 +1113,19 @@ const RESPONSIBLES = [
   "Rafael Ames",
   "Roberto Carlos Pomar Roman",
   "Ruben Fernandez",
-  "Ruben Luque Carbajal",
-  "Victor Ruiz Micha",
 ];
 
 function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
-  const currentUser = store.currentUser;
-  const today = new Date().toISOString().slice(0, 10);
-  const [startDate, setStartDate] = useState(today);
-  const [dueDate, setDueDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  const [priority, setPriority] = useState<Priority>(c.priority);
-  // Código automático basado en el caso con número secuencial
-  const planCode = `${c.id}-PLA-01`;
-  // Responsable automático basado en usuario logueado
-  const elaboratedBy = currentUser?.name || "Seguridad Operativa";
-  
-  const [items, setItems] = useState<PlanFormItem[]>([{ description: "", owner: RESPONSIBLES[0] || "Seguridad Operativa", priority: "media", startDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), actionType: "Correctiva", area: c.area || "operaciones" }]);
+  const existingPlan = c.actionPlans?.[0];
+  const [items, setItems] = useState<ActionItem[]>(existingPlan?.items || []);
+  const [elaboratedBy, setElaboratedBy] = useState(existingPlan?.elaboratedBy || "");
+  const [startDate, setStartDate] = useState(existingPlan?.startDate || new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = useState(existingPlan?.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  const [priority, setPriority] = useState<Priority>(existingPlan?.priority || "media");
   const [showSummary, setShowSummary] = useState(false);
+  const [planCode, setPlanCode] = useState(existingPlan?.planCode || "");
+  const [searchTerms, setSearchTerms] = useState<Record<number, string>>({});
+  const today = new Date().toISOString().slice(0, 10);
 
   const update = (i: number, key: keyof PlanFormItem, v: string) => {
     setItems((p) => p.map((it, idx) => (idx === i ? { ...it, [key]: v } : it)));
@@ -828,7 +1144,6 @@ function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
 
   const send = () => {
     if (!canSend) return;
-    // Usar el área de la primera actividad como área principal del plan
     const mainArea = items[0].area;
     store.submitActionPlan(c.id, {
       elaboratedBy,
@@ -857,6 +1172,11 @@ function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
     }
   };
 
+  const filteredResponsibles = (i: number) => {
+    const term = searchTerms[i]?.toLowerCase() || "";
+    return RESPONSIBLES.filter(name => name.toLowerCase().includes(term));
+  };
+
   return (
     <div className="space-y-4">
       <div className="pt-3 border-t border-line-soft">
@@ -868,31 +1188,76 @@ function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
                 <span className="text-[11px] font-semibold text-ink-faint">PLA-{String(i + 1).padStart(2, '0')}</span>
                 {items.length > 1 && <button onClick={() => remove(i)} className="text-[11px] text-critical hover:underline">Eliminar</button>}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Responsable" required>
-                  <Select value={it.owner} onChange={(e) => update(i, "owner", e.target.value)}>
-                    {RESPONSIBLES.map((name) => <option key={name} value={name}>{name}</option>)}
-                  </Select>
-                </Field>
-              </div>
-              <Field label="Descripción">
+              <Field label="Descripción" required>
                 <Textarea value={it.description} onChange={(e) => update(i, "description", e.target.value)} rows={2} placeholder="Detalle de la actividad…" />
               </Field>
               <div className="grid grid-cols-2 gap-3">
+                <Field label="Responsable" required>
+                  <div className="relative">
+                    <Input 
+                      value={searchTerms[i] !== undefined ? searchTerms[i] : it.owner} 
+                      onChange={(e) => {
+                        setSearchTerms(prev => ({ ...prev, [i]: e.target.value }));
+                      }}
+                      onFocus={() => {
+                        if (searchTerms[i] === undefined) {
+                          setSearchTerms(prev => ({ ...prev, [i]: "" }));
+                        }
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => {
+                          if (searchTerms[i] === "") {
+                            setSearchTerms(prev => ({ ...prev, [i]: undefined }));
+                          }
+                        }, 200);
+                      }}
+                      placeholder="Buscar responsable..."
+                      className="w-full"
+                    />
+                    {searchTerms[i] !== undefined && filteredResponsibles(i).length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-line rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                        {filteredResponsibles(i).map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => {
+                              update(i, "owner", name);
+                              setSearchTerms(prev => ({ ...prev, [i]: undefined }));
+                            }}
+                            className="w-full text-left px-3 py-2 text-[12.5px] hover:bg-surface-2 transition-colors"
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Field>
                 <Field label="Tipo de acción" required>
                   <Select value={it.actionType} onChange={(e) => update(i, "actionType", e.target.value)}>
                     <option>Correctiva</option><option>Preventiva</option><option>Mitigación</option><option>Compensatoria</option>
                   </Select>
                 </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <Field label="Área responsable" required>
                   <Select value={it.area} onChange={(e) => update(i, "area", e.target.value as Area)}>
                     {(Object.keys(AREA_LABELS) as Area[]).map((a) => <option key={a} value={a}>{AREA_LABELS[a]}</option>)}
                   </Select>
                 </Field>
-                <Field label="Fecha inicio de plan de acción" required>
+                <Field label="Prioridad" required>
+                  <Select value={it.priority} onChange={(e) => update(i, "priority", e.target.value as Priority)}>
+                    <option value="critica">Crítica</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                  </Select>
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Fecha inicio" required>
                   <Input type="date" min={today} value={it.startDate} onChange={(e) => update(i, "startDate", e.target.value)} />
                 </Field>
-                <Field label="Fecha fin de plan de acción" required>
+                <Field label="Fecha fin" required>
                   <Input type="date" min={it.startDate || startDate} value={it.dueDate} onChange={(e) => update(i, "dueDate", e.target.value)} />
                 </Field>
               </div>
@@ -956,8 +1321,8 @@ function PlanForm({ c, store, onSubmitted, onHasChanges }: PlanFormProps) {
 }
 
 function PlanDisplay({ c }: { c: Store["cases"][number] }) {
-  const plan = c.actionPlan!;
-  const planCode = `${c.id}-PLA-01`;
+  const plan = c.actionPlans?.[0]!;
+  const planCode = c.id;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2 -mb-1">
@@ -1009,17 +1374,26 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
   const today = new Date().toISOString().slice(0, 10);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [itemComment, setItemComment] = useState("");
+  const [planComment, setPlanComment] = useState("");
   const [extOpen, setExtOpen] = useState(false);
   const [extMotivo, setExtMotivo] = useState("");
   const [extFecha, setExtFecha] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const [extJustificacion, setExtJustificacion] = useState("");
-  const items = c.actionPlan?.items ?? [];
+  const plan = c.actionPlans?.[0];
+  const items = plan?.items ?? [];
   const accepted = !!c.execution?.acceptedByAreaAt;
   const allComplete = items.length > 0 && items.every((it) => it.status === "completado");
 
+  const addPlanCommentHandler = () => {
+    if (planComment.trim()) {
+      store.addPlanComment(c.id, 0, planComment.trim());
+      setPlanComment("");
+    }
+  };
+
   // Calcular tiempo límite de aprobación (2 días desde que se aprobó el plan)
-  const approvalDeadline = c.actionPlan?.reviewedAt 
-    ? new Date(new Date(c.actionPlan.reviewedAt).getTime() + 2 * 86400000)
+  const approvalDeadline = plan?.reviewedAt 
+    ? new Date(new Date(plan.reviewedAt).getTime() + 2 * 86400000)
     : null;
   const timeRemaining = approvalDeadline 
     ? Math.max(0, Math.ceil((approvalDeadline.getTime() - new Date().getTime()) / 86400000))
@@ -1083,7 +1457,7 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
         {c.extensionRequest && !c.extensionRequest.decision && (
           <div className="rounded-lg bg-warning-soft border border-warning/30 p-4 mb-4">
             <p className="text-[12.5px] font-semibold text-warning-ink">Solicitud de ampliación pendiente de decisión de SO</p>
-            <p className="text-[12px] text-ink-soft mt-1">{c.extensionRequest.motivo} · nueva fecha: {formatDate(c.extensionRequest.nuevaFecha)}</p>
+            <p className="text-[12px] text-ink-soft mt-1">{c.extensionRequest.justificacion} · nueva fecha: {formatDate(c.extensionRequest.nuevaFecha)}</p>
           </div>
         )}
         {c.extensionRequest?.decision === "aprobada" && (
@@ -1100,6 +1474,42 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
         {c.extensionRequest?.decision === "rechazada" && (
           <div className="rounded-lg bg-critical-soft border border-critical/20 p-3 mb-4 text-[12.5px] text-critical-ink">Ampliación rechazada — se mantiene el plazo original.</div>
         )}
+
+        {/* Comentarios del Plan de Acción */}
+        <div className="rounded-lg bg-surface border border-line p-4 mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint mb-2.5">
+            Comentarios del Plan de Acción
+            {plan?.comments && plan.comments.length > 0 && <span className="ml-1.5 text-ink-quiet">({plan.comments.length})</span>}
+          </p>
+          <div className="space-y-2 mb-3">
+            {plan?.comments && plan.comments.length > 0 ? (
+              plan.comments.map((comment, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-surface-2 rounded-lg">
+                  <span className="grid place-items-center h-8 w-8 rounded-lg bg-surface-3 text-ink-quiet">
+                    <Send className="h-4 w-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12.5px] font-medium text-ink truncate">{comment.text}</p>
+                    <p className="text-[11px] text-ink-quiet">{comment.author} · {formatDate(comment.at)}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-[12.5px] text-ink-quiet bg-surface rounded-lg p-3 border border-dashed border-line">No hay comentarios registrados</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={planComment}
+              onChange={(e) => setPlanComment(e.target.value)}
+              placeholder="Agregar comentario al plan..."
+              className="flex-1 text-[12.5px] px-3 py-2 rounded-lg border border-line bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+            />
+            <Button size="sm" onClick={addPlanCommentHandler} className="bg-brand-700 hover:bg-brand-800 transition-colors">
+              <Plus className="h-3 w-3 mr-1" /> Agregar
+            </Button>
+          </div>
+        </div>
 
         {/* Actividades */}
         <div>
@@ -1134,7 +1544,7 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
                   <Button variant="outline" size="sm" disabled={activeItem !== it.id || !itemComment.trim()} onClick={() => { if (itemComment.trim()) { store.updateActionItem(c.id, it.id, { comment: itemComment.trim() }); setItemComment(""); setActiveItem(null); } }}>Agregar</Button>
                 </div>
                 {it.comments.length > 0 && (
-                  <div className="mt-2 space-y-1">{it.comments.map((cm, ci) => <p key={ci} className="text-[11.5px] text-ink-soft">· {cm}</p>)}</div>
+                  <div className="mt-2 space-y-1">{it.comments.map((cm, ci) => <p key={ci} className="text-[11.5px] text-ink-soft">· {cm.text}</p>)}</div>
                 )}
               </div>
             ))}
@@ -1161,7 +1571,7 @@ function ExecutionStage({ c, store }: { c: Store["cases"][number]; store: Store 
       </StageSection>
 
       <Modal open={extOpen} onClose={() => setExtOpen(false)} title="Solicitar ampliación de plazo" subtitle={`${c.id} · complete los campos obligatorios`}
-        footer={<><Button variant="ghost" onClick={() => setExtOpen(false)}>Cancelar</Button><Button onClick={() => { if (extMotivo.trim() && extJustificacion.trim()) { store.requestExtension(c.id, { motivo: extMotivo.trim(), nuevaFecha: extFecha, justificacion: extJustificacion.trim() }); setExtOpen(false); setExtMotivo(""); setExtJustificacion(""); } }} disabled={!extMotivo.trim() || !extJustificacion.trim()}><Send className="h-4 w-4" /> Enviar solicitud a SO</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setExtOpen(false)}>Cancelar</Button><Button onClick={() => { if (extMotivo.trim() && extJustificacion.trim()) { store.requestExtension(c.id, { nuevaFecha: extFecha, justificacion: extJustificacion.trim() }); setExtOpen(false); setExtMotivo(""); setExtJustificacion(""); } }} disabled={!extMotivo.trim() || !extJustificacion.trim()}><Send className="h-4 w-4" /> Enviar solicitud a SO</Button></>}>
         <div className="space-y-4">
           <Field label="Motivo" required><Input value={extMotivo} onChange={(e) => setExtMotivo(e.target.value)} placeholder="Razón de la solicitud…" /></Field>
           <Field label="Nueva fecha propuesta" required><Input type="date" min={today} value={extFecha} onChange={(e) => setExtFecha(e.target.value)} /></Field>
@@ -1204,7 +1614,7 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
           <InvDisplay inv={c.investigation} />
         </StageSection>
       )}
-      {c.actionPlan && (
+      {c.actionPlans?.[0] && (
         <StageSection title="Plan de Acción ejecutado" subtitle="Revise el cumplimiento de las actividades." icon={<ClipboardList className="h-5 w-5" />}>
           <PlanDisplay c={c} />
         </StageSection>
@@ -1239,7 +1649,7 @@ function VerificationStage({ c, store }: { c: Store["cases"][number]; store: Sto
               <AlertCircle className="h-5 w-5 text-warning-ink shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-[13px] font-semibold text-warning-ink">Solicitud de ampliación pendiente</p>
-                <p className="text-[12.5px] text-ink-soft mt-0.5">{c.extensionRequest?.motivo} · nueva fecha: {formatDate(c.extensionRequest?.nuevaFecha ?? "")}</p>
+                <p className="text-[12.5px] text-ink-soft mt-0.5">{c.extensionRequest?.justificacion} · nueva fecha: {formatDate(c.extensionRequest?.nuevaFecha ?? "")}</p>
                 <p className="text-[12px] text-ink-soft mt-1">{c.extensionRequest?.justificacion}</p>
               </div>
             </div>
@@ -1366,10 +1776,10 @@ function ClosedStage({ c, store }: { c: Store["cases"][number]; store: Store }) 
   const totalDays = Math.max(1, Math.round((closedAt.getTime() - createdAt.getTime()) / 86400000));
   const totalHours = Math.round((closedAt.getTime() - createdAt.getTime()) / 3600000);
   const participants = Array.from(new Set([c.reporter, c.assignee, ...c.timeline.map((t) => t.actor)].filter(Boolean)));
-  const activityCount = c.actionPlan?.items.length ?? 0;
+  const activityCount = c.actionPlans?.[0]?.items.length ?? 0;
   const evidenceCount = c.evidence.length;
   const commentCount = c.timeline.filter((t) => t.kind === "comentario").length
-    + (c.actionPlan?.items.reduce((acc, it) => acc + it.comments.length, 0) ?? 0)
+    + (c.actionPlans?.[0]?.items.reduce((acc, it) => acc + it.comments.length, 0) ?? 0)
     + (c.execution?.updates.length ?? 0);
 
   const [reopenOpen, setReopenOpen] = useState(false);
@@ -1587,8 +1997,8 @@ function TimelineIcon({ kind }: { kind: string }) {
 
 /* ─── Descargar Plan de Acción (PDF imprimible) ─── */
 function downloadPlan(c: Store["cases"][number]) {
-  if (!c.actionPlan) return;
-  const plan = c.actionPlan;
+  const plan = c.actionPlans?.[0];
+  if (!plan) return;
   const w = window.open("", "_blank");
   if (!w) return;
   const rows = plan.items.map((it, i) => `
@@ -1623,6 +2033,7 @@ function downloadPlan(c: Store["cases"][number]) {
       <div><b>Análisis de riesgo</b><br/>${RISK_LABELS[c.riskLevel]}</div>
       <div><b>Fecha límite</b><br/>${formatDate(c.slaDueDate)}</div>
       <div><b>Elaborado por</b><br/>${escapeHtml(plan.elaboratedBy)}</div>
+      <div><b>Persona responsable</b><br/>${escapeHtml(plan.secondResponsible || plan.items[0]?.owner || "—")}</div>
       <div><b>Fecha de creación</b><br/>${formatDateTime(plan.submittedAt ?? c.createdAt)}</div>
     </div>
     <h2>Objetivo del Plan de Acción</h2>

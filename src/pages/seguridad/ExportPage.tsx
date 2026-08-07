@@ -434,14 +434,35 @@ function getFieldValue(c: any, field: string): string {
     "Consecuencia": () => "N/A",
     "Análisis de riesgo": () => c.riskLevel || "N/A",
     "ACR": () => "N/A",
-    "Plan de Acción": () => c.actionPlan?.planCode || "N/A",
-    "Descripción de Plan de Acción": () => c.actionPlan?.description?.slice(0, 30) + "..." || "",
-    "Responsable Plan de Acción": () => c.assignee || c.actionPlan?.elaboratedBy || "",
-    "Estado Plan de acción": () => c.actionPlan?.planStatus || "N/A",
-    "Fecha de plan": () => c.actionPlan?.planDate || "",
-    "Fecha programada": () => c.actionPlan?.scheduledDate || "",
-    "Días abierto plan de acción": () => c.actionPlan?.planDate ? Math.floor((Date.now() - new Date(c.actionPlan.planDate).getTime()) / 86400000).toString() : "0",
-    "Anexos": () => c.actionPlan?.annexes?.slice(0, 20) + "..." || "",
+    "Plan de Acción": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.planCode || "N/A";
+    },
+    "Descripción de Plan de Acción": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.description?.slice(0, 30) + "..." || "";
+    },
+    "Responsable Plan de Acción": () => c.assignee || (c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0].elaboratedBy : "") || "",
+    "Estado Plan de acción": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.planStatus || "N/A";
+    },
+    "Fecha de plan": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.planDate || "";
+    },
+    "Fecha programada": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.scheduledDate || "";
+    },
+    "Días abierto plan de acción": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.planDate ? Math.floor((Date.now() - new Date(plan.planDate).getTime()) / 86400000).toString() : "0";
+    },
+    "Anexos": () => {
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      return plan?.annexes?.slice(0, 20) + "..." || "";
+    },
     "Fecha evento": () => c.date,
     "Hora de evento": () => c.time,
     "Año": () => new Date(c.createdAt).getFullYear().toString(),

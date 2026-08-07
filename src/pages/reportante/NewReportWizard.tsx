@@ -73,7 +73,7 @@ const REPORT_TYPES: { value: TipoSOP | "otro" | "condicion_insegura" | "acto_ins
 
 const LOCATIONS = [
   { value: "Andén", icon: Layers },
-  { value: "Vagón", icon: Train },
+  { value: "Coche", icon: Train },
   { value: "Escalera eléctrica", icon: ArrowUpDown },
   { value: "Ascensor", icon: ArrowUpDown },
   { value: "Boletería", icon: Building2 },
@@ -168,7 +168,7 @@ export function NewReportWizard() {
       date: new Date().toISOString().slice(0, 10),
       time: new Date().toTimeString().slice(0, 5),
       priority: "media",
-      riskLevel: "3C",
+      riskLevel: undefined,
       evidence: form.evidence,
       reporter: reporterName,
       anonymous: form.anonymous,
@@ -364,6 +364,27 @@ export function NewReportWizard() {
                       {PATIOS_TALLER.map((p) => <option key={p} value={p}>{p}</option>)}
                     </Select>
                   </Field>
+                  <div className="mt-4">
+                    <p className="text-[12px] font-medium text-ink-soft mb-2">Lugar específico (opcional)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {LOCATIONS.map((loc) => {
+                        const active = form.location === loc.value;
+                        return (
+                          <button
+                            key={loc.value}
+                            onClick={() => set("location", form.location === loc.value ? "" : loc.value)}
+                            className={cn(
+                              "p-3 rounded-lg border text-left transition-all flex items-center gap-2.5",
+                              active ? "border-brand-600 bg-brand-50 ring-1 ring-brand-200" : "border-line bg-white hover:border-line-strong hover:bg-surface/50"
+                            )}
+                          >
+                            <loc.icon className={cn("h-4.5 w-4.5", active ? "text-brand-700" : "text-ink-faint")} />
+                            <span className={cn("text-[12.5px] font-medium", active ? "text-brand-900" : "text-ink")}>{loc.value}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </>
               )}
             </StepBox>

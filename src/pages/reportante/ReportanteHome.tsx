@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, FileText, Clock, CheckCircle2, Bell, ArrowRight, Mail, MapPin, AlertCircle } from "lucide-react";
+import { Plus, FileText, Clock, CheckCircle2, Bell, ArrowRight, Mail, MapPin, AlertCircle, Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ReportanteShell } from "@/design-system/layout/ReportanteShell";
 import { WelcomeBanner } from "@/design-system/layout/WelcomeBanner";
@@ -52,11 +52,18 @@ export function ReportanteHome() {
             <p className="mt-2 text-[13px] text-white/80">
               Registre un nuevo reporte en menos de un minuto con el asistente guiado.
             </p>
-            <Link to="/reportante/nuevo" className="mt-5 inline-block">
-              <span className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-white text-brand-800 font-semibold text-[13px] hover:bg-white/90 transition-colors">
-                <Plus className="h-4 w-4" /> Registrar reporte
-              </span>
-            </Link>
+            <div className="mt-4 flex flex-col gap-2">
+              <Link to="/reportante/nuevo" className="inline-block">
+                <span className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-white text-brand-800 font-semibold text-[13px] hover:bg-white/90 transition-colors">
+                  <Plus className="h-4 w-4" /> Registrar reporte
+                </span>
+              </Link>
+              <Link to="/reportante/investigacion" className="inline-block">
+                <span className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-white/20 text-white font-semibold text-[13px] hover:bg-white/30 transition-colors">
+                  <Search className="h-4 w-4" /> Comenzar investigación
+                </span>
+              </Link>
+            </div>
           </div>
         </Card>
 

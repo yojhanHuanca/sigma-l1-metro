@@ -9,6 +9,7 @@ import { NewReportWizard } from "@/pages/reportante/NewReportWizard";
 import { MyReports } from "@/pages/reportante/MyReports";
 import { ReportanteNotifications } from "@/pages/reportante/ReportanteNotifications";
 import { JefeHome } from "@/pages/jefe/JefeHome";
+import { PlanDetail } from "@/pages/jefe/PlanDetail";
 import { Dashboard } from "@/pages/seguridad/Dashboard";
 import { DecisionCenter } from "@/pages/seguridad/DecisionCenter";
 import { Alerts } from "@/pages/seguridad/Alerts";
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="/reportante/notificaciones" element={<RequireRole role="reportante"><ReportanteNotifications /></RequireRole>} />
 
             <Route path="/jefe" element={<RequireRole role="jefe"><JefeHome /></RequireRole>} />
+            <Route path="/jefe/planes/:id" element={<RequireRole role="jefe"><PlanDetail /></RequireRole>} />
 
             <Route path="/seguridad" element={<RequireRole role="seguridad"><Dashboard /></RequireRole>} />
             <Route path="/seguridad/decisiones" element={<RequireRole role="seguridad"><DecisionCenter /></RequireRole>} />

@@ -22,27 +22,30 @@ export function AreaHeadDashboard() {
   // Calcular métricas específicas del área
   const metrics = useMemo(() => {
     const activePlans = areaCases.filter(c => c.stage === "plan_accion" || c.stage === "ejecucion");
-    const pendingApproval = areaCases.filter(c => c.stage === "plan_accion" && !c.actionPlan?.reviewedAt);
+    const pendingApproval = areaCases.filter(c => c.stage === "plan_accion" && !(c.actionPlans && c.actionPlans.length > 0 && c.actionPlans[0].reviewedAt));
     const thisWeekActivities = areaCases.filter(c => {
-      const dueDate = c.actionPlan?.scheduledDate;
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      const dueDate = plan?.scheduledDate;
       if (!dueDate) return false;
       const daysUntilDue = daysUntil(dueDate);
       return daysUntilDue >= 0 && daysUntilDue <= 7;
     });
     const overdueActivities = areaCases.filter(c => {
-      const dueDate = c.actionPlan?.scheduledDate;
+      const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+      const dueDate = plan?.scheduledDate;
       if (!dueDate) return false;
       return daysUntil(dueDate) < 0;
     });
-    const completedPlans = areaCases.filter(c => c.stage === "cierre" && c.actionPlan);
+    const completedPlans = areaCases.filter(c => c.stage === "cierre" && c.actionPlans && c.actionPlans.length > 0);
     
     // Calcular SLA del área
     const closedOnTime = areaCases.filter(c => c.stage === "cierre" && daysUntil(c.slaDueDate) >= 0).length;
     const slaCompliance = areaCases.length > 0 ? Math.round((closedOnTime / areaCases.length) * 100) : 100;
     
     // Tiempo promedio de respuesta del área
-    const responseTimes = areaCases.filter(c => c.actionPlan?.reviewedAt).map(c => {
-      const reviewTime = new Date(c.actionPlan!.reviewedAt!).getTime();
+    const responseTimes = areaCases.filter(c => c.actionPlans && c.actionPlans.length > 0 && c.actionPlans[0].reviewedAt).map(c => {
+      const plan = c.actionPlans![0];
+      const reviewTime = new Date(plan.reviewedAt!).getTime();
       const createdTime = new Date(c.createdAt).getTime();
       return Math.round((reviewTime - createdTime) / 86400000); // días
     });
@@ -65,14 +68,20 @@ export function AreaHeadDashboard() {
   // Actividades que vencen esta semana
   const weeklyActivities = useMemo(() => {
     return areaCases
-      .filter(c => c.actionPlan?.scheduledDate && daysUntil(c.actionPlan.scheduledDate) >= 0 && daysUntil(c.actionPlan.scheduledDate) <= 7)
-      .map(c => ({
-        id: c.id,
-        title: c.title,
-        dueDate: c.actionPlan!.scheduledDate || "",
-        daysRemaining: daysUntil(c.actionPlan!.scheduledDate || ""),
-        priority: c.priority
-      }))
+      .filter(c => {
+        const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+        return plan?.scheduledDate && daysUntil(plan.scheduledDate) >= 0 && daysUntil(plan.scheduledDate) <= 7;
+      })
+      .map(c => {
+        const plan = c.actionPlans![0];
+        return {
+          id: c.id,
+          title: c.title,
+          dueDate: plan.scheduledDate || "",
+          daysRemaining: daysUntil(plan.scheduledDate || ""),
+          priority: c.priority
+        };
+      })
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
       .slice(0, 5);
   }, [areaCases]);
@@ -80,13 +89,16 @@ export function AreaHeadDashboard() {
   // Casos pendientes de aprobación
   const pendingCases = useMemo(() => {
     return areaCases
-      .filter(c => c.stage === "plan_accion" && !c.actionPlan?.reviewedAt)
-      .map(c => ({
-        id: c.id,
-        title: c.title,
-        submittedAt: c.actionPlan?.submittedAt,
-        priority: c.priority
-      }))
+      .filter(c => c.stage === "plan_accion" && !(c.actionPlans && c.actionPlans.length > 0 && c.actionPlans[0].reviewedAt))
+      .map(c => {
+        const plan = c.actionPlans && c.actionPlans.length > 0 ? c.actionPlans[0] : null;
+        return {
+          id: c.id,
+          title: c.title,
+          submittedAt: plan?.submittedAt,
+          priority: c.priority
+        };
+      })
       .slice(0, 5);
   }, [areaCases]);
   

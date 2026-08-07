@@ -28,6 +28,7 @@ import {
   type User,
   type UserRole,
   type RiskLevel,
+  type ActivityComment,
   slaDaysFor,
   riskCategory,
   slaDaysForRisk,
@@ -83,27 +84,61 @@ function loadCases(): CaseFile[] {
     ...c,
     stage: stageMap[c.stage] ?? c.stage,
     riskLevel: c.riskLevel ?? prioToRisk[c.priority] ?? "3C",
-    actionPlan: c.actionPlan
-      ? {
-          ...c.actionPlan,
-          elaboratedBy: c.actionPlan.elaboratedBy ?? "Seguridad Operativa",
-          actionType: c.actionPlan.actionType ?? "Correctiva",
-          description: c.actionPlan.description ?? "",
-          startDate: c.actionPlan.startDate ?? (c.createdAt ? c.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
-          estimatedTime: c.actionPlan.estimatedTime ?? "7 días",
-          priority: c.actionPlan.priority ?? c.priority,
-          observations: c.actionPlan.observations ?? "",
-          sentToArea: c.actionPlan.sentToArea ?? c.assigneeArea ?? c.area,
-          reviewDecision: c.actionPlan.reviewDecision,
-          items: c.actionPlan.items.map((it) => ({
+    actionPlans: c.actionPlans
+      ? c.actionPlans.map((plan) => ({
+          ...plan,
+          elaboratedBy: plan.elaboratedBy ?? "Seguridad Operativa",
+          actionType: plan.actionType ?? "Correctiva",
+          description: plan.description ?? "",
+          startDate: plan.startDate ?? (c.createdAt ? c.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+          estimatedTime: plan.estimatedTime ?? "7 días",
+          priority: plan.priority ?? c.priority,
+          observations: plan.observations ?? "",
+          sentToArea: plan.sentToArea ?? c.assigneeArea ?? c.area,
+          reviewDecision: plan.reviewDecision,
+          items: plan.items.map((it: any) => ({
             ...it,
             name: it.name ?? it.description ?? "Actividad",
             priority: it.priority ?? "media",
             startDate: it.startDate ?? (c.createdAt ? c.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
-            comments: it.comments ?? [],
+            comments: Array.isArray(it.comments) && it.comments.length > 0 && typeof it.comments[0] === 'string' 
+              ? it.comments.map((comment: string, idx: number) => ({
+                  id: `comment_${it.id}_${idx}`,
+                  text: comment,
+                  author: c.assignee ?? "Jefe de Área",
+                  at: new Date().toISOString()
+                }))
+              : it.comments ?? [],
           })),
-        }
-      : c.actionPlan,
+        }))
+      : (c as any).actionPlan
+      ? [{
+          ...(c as any).actionPlan,
+          elaboratedBy: (c as any).actionPlan.elaboratedBy ?? "Seguridad Operativa",
+          actionType: (c as any).actionPlan.actionType ?? "Correctiva",
+          description: (c as any).actionPlan.description ?? "",
+          startDate: (c as any).actionPlan.startDate ?? (c.createdAt ? c.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+          estimatedTime: (c as any).actionPlan.estimatedTime ?? "7 días",
+          priority: (c as any).actionPlan.priority ?? c.priority,
+          observations: (c as any).actionPlan.observations ?? "",
+          sentToArea: (c as any).actionPlan.sentToArea ?? c.assigneeArea ?? c.area,
+          reviewDecision: (c as any).actionPlan.reviewDecision,
+          items: (c as any).actionPlan.items.map((it: any) => ({
+            ...it,
+            name: it.name ?? it.description ?? "Actividad",
+            priority: it.priority ?? "media",
+            startDate: it.startDate ?? (c.createdAt ? c.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+            comments: Array.isArray(it.comments) && it.comments.length > 0 && typeof it.comments[0] === 'string' 
+              ? it.comments.map((comment: string, idx: number) => ({
+                  id: `comment_${it.id}_${idx}`,
+                  text: comment,
+                  author: c.assignee ?? "Jefe de Área",
+                  at: new Date().toISOString()
+                }))
+              : it.comments ?? [],
+          }))
+        }]
+      : c.actionPlans,
     investigation: c.investigation
       ? { ...c.investigation, technicalDescription: c.investigation.technicalDescription ?? "" }
       : c.investigation,
@@ -179,6 +214,8 @@ interface EvaluationInput {
   classification: string;
   requiresInvestigation: boolean;
   observations: string;
+  danger: string;
+  consequence: string;
 }
 
 interface ActionPlanInput {
@@ -201,7 +238,6 @@ interface ActionPlanInput {
 }
 
 interface ExtensionInput {
-  motivo: string;
   nuevaFecha: string;
   justificacion: string;
 }
@@ -239,6 +275,8 @@ interface StoreValue {
   // ETAPA 4 — Plan de Acción (SO)
   submitActionPlan: (caseId: string, plan: ActionPlanInput) => void;
   reviewActionPlan: (caseId: string, decision: "aprobado" | "rechazado", note?: string) => void;
+  verifyActionPlan: (caseId: string, planIndex: number, decision: "aprobado" | "rechazado" | "pendiente", note?: string) => void;
+  addPlanComment: (caseId: string, planIndex: number, text: string) => void;
   startExecution: (caseId: string) => void;
 
   // ETAPA 5 — Ejecución (jefe del área)
@@ -523,36 +561,75 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             stage: "plan_accion",
             assignee: head,
             assigneeArea: plan.sentToArea,
-            actionPlan: {
-              elaboratedBy: plan.elaboratedBy,
-              actionType: plan.actionType,
-              description: plan.description,
-              startDate: plan.startDate,
-              dueDate: plan.dueDate,
-              estimatedTime: plan.estimatedTime,
-              priority: plan.priority,
-              observations: plan.observations,
-              items: plan.items.map((it) => ({
-                id: uid("ai"),
-                name: `Actividad`,
-                description: it.description,
-                owner: it.owner,
-                priority: it.priority,
-                startDate: it.startDate,
-                dueDate: it.dueDate,
-                progress: 0,
-                status: "pendiente" as const,
-                comments: [] as string[],
-              })),
-              submittedAt: nowISO(),
-              sentToArea: plan.sentToArea,
-              planCode: plan.planCode,
-              planStatus: plan.planStatus,
-              planDate: plan.planDate,
-              scheduledDate: plan.scheduledDate,
-              annexes: plan.annexes,
-              secondResponsible: plan.secondResponsible,
-            },
+            actionPlans: c.actionPlans && c.actionPlans.length > 0
+              ? c.actionPlans.map((existingPlan, index) => 
+                  index === c.actionPlans!.length - 1 
+                    ? {
+                        ...existingPlan,
+                        elaboratedBy: plan.elaboratedBy,
+                        actionType: plan.actionType,
+                        description: plan.description,
+                        startDate: plan.startDate,
+                        dueDate: plan.dueDate,
+                        estimatedTime: plan.estimatedTime,
+                        priority: plan.priority,
+                        observations: plan.observations,
+                        items: plan.items.map((it, idx) => {
+                          const existingItem = existingPlan.items[idx];
+                          return {
+                            id: existingItem?.id || uid("ai"),
+                            name: existingItem?.name || `Actividad`,
+                            description: it.description,
+                            owner: it.owner,
+                            priority: it.priority,
+                            startDate: it.startDate,
+                            dueDate: it.dueDate,
+                            progress: existingItem?.progress || 0,
+                            status: existingItem?.status || "pendiente" as const,
+                            comments: existingItem?.comments || [] as ActivityComment[],
+                          };
+                        }),
+                        submittedAt: nowISO(),
+                        sentToArea: plan.sentToArea,
+                        planCode: plan.planCode || existingPlan.planCode,
+                        planStatus: plan.planStatus || existingPlan.planStatus,
+                        planDate: plan.planDate || existingPlan.planDate,
+                        scheduledDate: plan.scheduledDate || existingPlan.scheduledDate,
+                        annexes: plan.annexes || existingPlan.annexes,
+                        secondResponsible: plan.secondResponsible || existingPlan.secondResponsible,
+                      }
+                    : existingPlan
+                )
+              : [{
+                  elaboratedBy: plan.elaboratedBy,
+                  actionType: plan.actionType,
+                  description: plan.description,
+                  startDate: plan.startDate,
+                  dueDate: plan.dueDate,
+                  estimatedTime: plan.estimatedTime,
+                  priority: plan.priority,
+                  observations: plan.observations,
+                  items: plan.items.map((it) => ({
+                    id: uid("ai"),
+                    name: `Actividad`,
+                    description: it.description,
+                    owner: it.owner,
+                    priority: it.priority,
+                    startDate: it.startDate,
+                    dueDate: it.dueDate,
+                    progress: 0,
+                    status: "pendiente" as const,
+                    comments: [] as ActivityComment[],
+                  })),
+                  submittedAt: nowISO(),
+                  sentToArea: plan.sentToArea,
+                  planCode: plan.planCode,
+                  planStatus: plan.planStatus,
+                  planDate: plan.planDate,
+                  scheduledDate: plan.scheduledDate,
+                  annexes: plan.annexes,
+                  secondResponsible: plan.secondResponsible,
+                }],
           },
           {
             kind: "plan_propuesto",
@@ -574,7 +651,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         pushTimeline(
           {
             ...c,
-            actionPlan: c.actionPlan ? { ...c.actionPlan, reviewedAt: nowISO(), reviewDecision: decision, reviewNote: note } : c.actionPlan,
+            actionPlans: c.actionPlans 
+              ? c.actionPlans.map((plan) => ({ ...plan, reviewedAt: nowISO(), reviewDecision: decision, reviewNote: note }))
+              : c.actionPlans,
           },
           {
             kind: decision === "aprobado" ? "plan_aprobado" : "plan_ajustado",
@@ -590,15 +669,95 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [mutate, pushNotification]
   );
 
+  const verifyActionPlan = useCallback(
+    (caseId: string, planIndex: number, decision: "aprobado" | "rechazado" | "pendiente", note?: string) => {
+      mutate(caseId, (c) =>
+        pushTimeline(
+          {
+            ...c,
+            actionPlans: c.actionPlans 
+              ? c.actionPlans.map((plan, index) => 
+                  index === planIndex 
+                    ? { 
+                        ...plan, 
+                        verification: { 
+                          verifiedAt: nowISO(), 
+                          verifiedBy: SAFETY_USER.name, 
+                          decision, 
+                          note 
+                        } 
+                      }
+                    : plan
+                )
+              : c.actionPlans,
+          },
+          {
+            kind: decision === "aprobado" ? "plan_aprobado" : "plan_ajustado",
+            actor: SAFETY_USER.name,
+            actorRole: "seguridad",
+            title: decision === "aprobado" ? "Plan de Acción verificado y aprobado" : "Plan de Acción rechazado en verificación",
+            detail: decision === "aprobado" ? "El plan ha completado la verificación exitosamente." : `El plan requiere ajustes: ${note || ""}`,
+          }
+        )
+      );
+    },
+    [mutate, pushNotification]
+  );
+
+  const addPlanComment = useCallback(
+    (caseId: string, planIndex: number, text: string) => {
+      mutate(caseId, (c) =>
+        pushTimeline(
+          {
+            ...c,
+            actionPlans: c.actionPlans 
+              ? c.actionPlans.map((plan, index) => 
+                  index === planIndex 
+                    ? { 
+                        ...plan, 
+                        comments: [
+                          ...(plan.comments || []),
+                          {
+                            id: uid("comment"),
+                            text,
+                            author: SAFETY_USER.name,
+                            at: nowISO()
+                          }
+                        ]
+                      }
+                    : plan
+                )
+              : c.actionPlans,
+          },
+          {
+            kind: "comentario",
+            actor: SAFETY_USER.name,
+            actorRole: "seguridad",
+            title: "Comentario agregado al Plan de Acción",
+            detail: text
+          }
+        )
+      );
+      pushNotification({ 
+        caseId, 
+        title: "Nuevo comentario en Plan de Acción", 
+        body: `${caseId} · ${SAFETY_USER.name} agregó un comentario: ${text.slice(0, 50)}...`, 
+        audience: "both", 
+        kind: "info" 
+      });
+    },
+    [mutate, pushNotification]
+  );
+
   const startExecution = useCallback(
     (caseId: string) => {
       mutate(caseId, (c) =>
         pushTimeline(
           {
             ...c,
-            actionPlan: c.actionPlan
-              ? { ...c.actionPlan, reviewDecision: "pendiente", reviewedAt: undefined }
-              : c.actionPlan,
+            actionPlans: c.actionPlans
+              ? c.actionPlans.map((plan) => ({ ...plan, reviewDecision: "pendiente" as const, reviewedAt: undefined }))
+              : c.actionPlans,
           },
           { kind: "plan_propuesto", actor: SAFETY_USER.name, actorRole: "seguridad", title: "Plan de Acción enviado a Jefe de Área", detail: `Correo enviado a jefe del área. Pendiente de aprobación.` }
         )
@@ -617,29 +776,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // ─── ETAPA 4 — Aceptación del plan (jefe del área) ─────────────────────
   const acceptPlan = useCallback(
     (caseId: string) => {
-      mutate(caseId, (c) =>
-        pushTimeline(
+      mutate(caseId, (c) => {
+        // Calcular progreso dinámicamente basado en las actividades del plan
+        const calculatePlanProgress = (plan: any) => {
+          if (!plan.items || plan.items.length === 0) return 0;
+          let totalProgress = 0;
+          plan.items.forEach((item: any) => {
+            if (item.status === "completado") totalProgress += 100;
+            else if (item.status === "en_progreso") totalProgress += 50;
+            else totalProgress += 0;
+          });
+          return Math.round(totalProgress / plan.items.length);
+        };
+
+        const updatedPlans = c.actionPlans 
+          ? c.actionPlans.map((plan) => ({
+              ...plan,
+              reviewDecision: "aprobado" as const,
+              reviewedAt: nowISO(),
+              items: plan.items.map((it) => (it.status === "pendiente" ? { ...it, status: "en_progreso" as const } : it))
+            }))
+          : c.actionPlans;
+
+        const initialProgress = updatedPlans ? calculatePlanProgress(updatedPlans[0]) : 0;
+
+        return pushTimeline(
           { 
             ...c, 
             stage: "ejecucion",
             execution: { 
               ...c.execution, 
-              progress: 0, 
+              progress: initialProgress, 
               updates: [], 
               acceptedByAreaAt: nowISO() 
             },
-            actionPlan: c.actionPlan 
-              ? { 
-                  ...c.actionPlan, 
-                  reviewDecision: "aprobado", 
-                  reviewedAt: nowISO(),
-                  items: c.actionPlan.items.map((it) => (it.status === "pendiente" ? { ...it, status: "en_progreso" as const, progress: Math.max(it.progress, 10) } : it))
-                } 
-              : c.actionPlan 
+            actionPlans: updatedPlans
           },
           { kind: "plan_aprobado", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Plan aceptado por el jefe del área", detail: "El área aceptó el plan. Ejecución iniciada." }
-        )
-      );
+        );
+      });
       pushNotification({ 
         caseId, 
         title: `Plan de Acción aceptado — ${caseId}`, 
@@ -659,14 +834,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         pushTimeline(
           { 
             ...c, 
-            actionPlan: c.actionPlan 
-              ? { 
-                  ...c.actionPlan, 
+            actionPlans: c.actionPlans 
+              ? c.actionPlans.map((plan) => ({ 
+                  ...plan, 
                   extensionRequest: { ...ext, requestedAt: nowISO() } 
-                } 
-              : c.actionPlan 
+                }))
+              : c.actionPlans 
           },
-          { kind: "ampliacion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Solicitud de ampliación de plazo", detail: `Motivo: ${ext.motivo}. Nueva fecha: ${ext.nuevaFecha}. Justificación: ${ext.justificacion}.` }
+          { kind: "ampliacion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Solicitud de ampliación de plazo", detail: `Nueva fecha: ${ext.nuevaFecha}. Justificación: ${ext.justificacion}.` }
         )
       );
       pushNotification({ caseId, title: "Solicitud de ampliación de plazo", body: `${caseId} · el jefe del área solicita ampliación para el plan de acción. Pendiente de decisión de SO.`, audience: "seguridad", kind: "warning" });
@@ -677,13 +852,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const reviewExtension = useCallback(
     (caseId: string, decision: "aprobada" | "rechazada", note?: string, newDate?: string) => {
       mutate(caseId, (c) => {
-        const due = c.actionPlan?.dueDate ?? c.slaDueDate;
+        const due = c.actionPlans?.[0]?.dueDate ?? c.slaDueDate;
         const newDue = decision === "aprobada" && newDate ? newDate : due;
         return pushTimeline(
           {
             ...c,
             slaDueDate: newDue,
-            actionPlan: c.actionPlan ? { ...c.actionPlan, dueDate: newDue, extensionRequest: c.actionPlan.extensionRequest ? { ...c.actionPlan.extensionRequest, decision, decidedAt: nowISO() } : c.actionPlan.extensionRequest } : c.actionPlan,
+            actionPlans: c.actionPlans ? c.actionPlans.map((plan) => ({ 
+              ...plan, 
+              dueDate: newDue, 
+              extensionRequest: plan.extensionRequest ? { ...plan.extensionRequest, decision, decidedAt: nowISO() } : plan.extensionRequest 
+            })) : c.actionPlans,
             extensionRequest: c.extensionRequest ? { ...c.extensionRequest, decision, decidedAt: nowISO() } : c.extensionRequest,
           },
           { kind: "ampliacion", actor: SAFETY_USER.name, actorRole: "seguridad", title: `Solicitud de ampliación ${decision}`, detail: decision === "aprobada" ? `Ampliación aprobada. Nueva fecha: ${newDue}. ${note || ""}` : `Ampliación rechazada. ${note || ""}` }
@@ -697,24 +876,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateActionItem = useCallback(
     (caseId: string, itemId: string, patch: { status?: ActionItem["status"]; progress?: number; comment?: string }) => {
       mutate(caseId, (c) => {
-        if (!c.actionPlan) return c;
-        const items = c.actionPlan.items.map((it) => {
-          if (it.id !== itemId) return it;
-          const nextStatus = patch.status ?? it.status;
-          const nextProgress = patch.progress ?? (nextStatus === "completado" ? 100 : nextStatus === "en_progreso" ? Math.max(it.progress, 10) : it.progress);
-          const nextComments = patch.comment?.trim() ? [...it.comments, patch.comment.trim()] : it.comments;
-          return { ...it, status: nextStatus, progress: nextProgress, comments: nextComments };
+        if (!c.actionPlans || c.actionPlans.length === 0) return c;
+        
+        // Calcular progreso dinámicamente basado en el estado de las actividades
+        const calculateProgress = (items: any[]) => {
+          if (!items || items.length === 0) return 0;
+          let totalProgress = 0;
+          items.forEach((item) => {
+            if (item.status === "completado") totalProgress += 100;
+            else if (item.status === "en_progreso") totalProgress += 50;
+            else totalProgress += 0;
+          });
+          return Math.round(totalProgress / items.length);
+        };
+
+        const updatedPlans = c.actionPlans.map((plan) => {
+          const items = plan.items.map((it) => {
+            if (it.id !== itemId) return it;
+            const nextStatus = patch.status ?? it.status;
+            const nextProgress = calculateProgress([{ ...it, status: nextStatus }]);
+            const nextComments = patch.comment?.trim() 
+              ? [...it.comments, { id: uid("comment"), text: patch.comment.trim(), author: c.assignee ?? "Jefe de Área", at: nowISO() }]
+              : it.comments;
+            return { ...it, status: nextStatus, progress: nextProgress, comments: nextComments };
+          });
+          const execProgress = calculateProgress(items);
+          return { ...plan, items };
         });
-        const execProgress = items.length ? Math.round(items.reduce((acc, it) => acc + it.progress, 0) / items.length) : 0;
+        
+        const execProgress = calculateProgress(updatedPlans[0].items);
         return pushTimeline(
-          { ...c, actionPlan: { ...c.actionPlan, items }, execution: { progress: execProgress, updates: c.execution?.updates ?? [], acceptedByAreaAt: c.execution?.acceptedByAreaAt } },
+          { ...c, actionPlans: updatedPlans, execution: { progress: execProgress, updates: c.execution?.updates ?? [], acceptedByAreaAt: c.execution?.acceptedByAreaAt } },
           patch.comment?.trim()
             ? { kind: "ejecucion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: `Actividad ${nextStatusLabel(patch.status)}`, detail: patch.comment.trim() }
-            : { kind: "ejecucion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: `Actividad ${nextStatusLabel(patch.status)}` }
+            : { kind: "ejecucion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: `Actividad ${nextStatusLabel(patch.status)}`, detail: "Estado de actividad actualizado" }
         );
       });
+      if (patch.status) {
+        pushNotification({ 
+          caseId, 
+          title: "Actividad actualizada", 
+          body: `${caseId} · actividad marcada como ${patch.status}.`, 
+          audience: "both", 
+          kind: "info" 
+        });
+      }
     },
-    [mutate]
+    [mutate, pushNotification]
   );
 
   const addExecutionEvidence = useCallback(
@@ -725,20 +933,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           { kind: "ejecucion", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: `Evidencia de ejecución adjuntada — ${evidence.name}`, detail: `${evidence.kind} · ${evidence.size}` }
         )
       );
+      pushNotification({ 
+        caseId, 
+        title: "Evidencia de ejecución adjuntada", 
+        body: `${caseId} · ${evidence.name} (${evidence.kind})`, 
+        audience: "both", 
+        kind: "info" 
+      });
     },
-    [mutate]
+    [mutate, pushNotification]
   );
 
   const completeExecution = useCallback(
     (caseId: string) => {
       mutate(caseId, (c) => {
-        const items = c.actionPlan?.items ?? [];
+        // Calcular progreso dinámicamente basado en el estado de las actividades
+        const calculateProgress = (items: any[]) => {
+          if (!items || items.length === 0) return 0;
+          let totalProgress = 0;
+          items.forEach((item) => {
+            if (item.status === "completado") totalProgress += 100;
+            else if (item.status === "en_progreso") totalProgress += 50;
+            else totalProgress += 0;
+          });
+          return Math.round(totalProgress / items.length);
+        };
+
+        const updatedPlans = c.actionPlans?.map((plan) => ({
+          ...plan,
+          items: plan.items.map((it) => ({ ...it, status: "completado" as const, progress: 100 }))
+        })) ?? [];
+        
+        const execProgress = calculateProgress(updatedPlans[0]?.items ?? []);
+        
         return pushTimeline(
           {
             ...c,
             stage: "verificacion",
-            actionPlan: c.actionPlan ? { ...c.actionPlan, items: items.map((it) => ({ ...it, status: "completado" as const, progress: 100 })) } : c.actionPlan,
-            execution: { progress: 100, updates: c.execution?.updates ?? [], acceptedByAreaAt: c.execution?.acceptedByAreaAt },
+            actionPlans: updatedPlans,
+            execution: { progress: execProgress, updates: c.execution?.updates ?? [], acceptedByAreaAt: c.execution?.acceptedByAreaAt },
           },
           { kind: "seguimiento", actor: c.assignee ?? "Jefe de Área", actorRole: "reportante", title: "Ejecución finalizada — vuelve a Seguridad Operativa", detail: "El área completó las actividades. El expediente vuelve a SO para verificación." }
         );
@@ -1107,6 +1340,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addInvestigationEvidence,
     submitActionPlan,
     reviewActionPlan,
+    verifyActionPlan,
+    addPlanComment,
     startExecution,
     acceptPlan,
     requestExtension,

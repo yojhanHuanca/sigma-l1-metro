@@ -58,7 +58,14 @@ export function PriorityPill({ priority }: { priority: Priority }) {
   );
 }
 
-export function RiskPill({ risk, showCategory = false, className }: { risk: RiskLevel; showCategory?: boolean; className?: string }) {
+export function RiskPill({ risk, showCategory = false, className }: { risk?: RiskLevel; showCategory?: boolean; className?: string }) {
+  if (!risk) {
+    return (
+      <Pill tone="neutral" className={className}>
+        Por definir
+      </Pill>
+    );
+  }
   const cat = riskCategory(risk);
   const tone = RISK_CATEGORY_TONE[cat];
   const label = showCategory ? `${risk} · ${RISK_CATEGORY_LABELS[cat]}` : risk;

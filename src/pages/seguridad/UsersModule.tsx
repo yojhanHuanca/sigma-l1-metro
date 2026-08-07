@@ -488,7 +488,7 @@ function WorkerProfile({ user, onClose }: { user: User; onClose: () => void }) {
 
   const userCases = cases.filter((c) => c.assignee === user.name || c.reporter === user.name);
   const userInvestigations = cases.filter((c) => c.investigator === user.name || (c.involvedWorkers ?? []).some((w) => w.userId === user.id));
-  const userPlans = cases.filter((c) => c.assignee === user.name && c.actionPlan);
+  const userPlans = cases.filter((c) => c.assignee === user.name && c.actionPlans && c.actionPlans.length > 0);
   const openCases = userCases.filter((c) => c.stage !== "cierre" && c.stage !== "rechazado").length;
   const closedCases = userCases.filter((c) => c.stage === "cierre").length;
   const criticalCases = userCases.filter((c) => c.priority === "critica").length;

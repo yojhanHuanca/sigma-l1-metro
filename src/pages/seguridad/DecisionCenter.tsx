@@ -32,7 +32,7 @@ export function DecisionCenter() {
     const aprobaciones = cases.filter((c) => c.stage === "recepcion" || c.stage === "evaluacion");
 
     // 2. Planes pendientes de aprobación: casos en plan_accion sin reviewDecision
-    const planes = cases.filter((c) => c.stage === "plan_accion" && c.actionPlan && !c.actionPlan.reviewDecision);
+    const planes = cases.filter((c) => c.stage === "plan_accion" && c.actionPlans && c.actionPlans.length > 0 && !c.actionPlans[0].reviewDecision);
 
     // 3. Solicitudes de prórroga: casos con extensionRequest sin decisión
     const prorrogas = cases.filter((c) => c.extensionRequest && !c.extensionRequest.decision);
@@ -299,12 +299,12 @@ function DecisionCard({
             <CardMeta icon={<Clock className="h-3 w-3" />} label="Estado" value={STAGE_LABELS[c.stage]} />
           </>
         )}
-        {type === "planes" && c.actionPlan && (
+        {type === "planes" && c.actionPlans && c.actionPlans.length > 0 && (
           <>
             <CardMeta icon={<Building2 className="h-3 w-3" />} label="Área" value={c.assigneeArea ? AREA_LABELS[c.assigneeArea] : "—"} />
             <CardMeta icon={<UserIcon className="h-3 w-3" />} label="Responsable" value={c.assignee ?? "—"} />
             <CardMeta icon={<Calendar className="h-3 w-3" />} label="Fecha límite" value={formatDate(c.slaDueDate)} />
-            <CardMeta icon={<Activity className="h-3 w-3" />} label="Actividades" value={`${c.actionPlan.items.length}`} />
+            <CardMeta icon={<Activity className="h-3 w-3" />} label="Actividades" value={`${c.actionPlans[0].items.length}`} />
           </>
         )}
         {type === "prorrogas" && c.extensionRequest && (
@@ -315,7 +315,7 @@ function DecisionCard({
             <CardMeta icon={<Calendar className="h-3 w-3" />} label="Nueva fecha" value={formatDate(c.extensionRequest.nuevaFecha)} />
             <div className="pt-1">
               <p className="text-[10.5px] font-medium text-ink-faint">Motivo</p>
-              <p className="text-[11.5px] text-ink-soft mt-0.5 line-clamp-2">{c.extensionRequest.motivo}</p>
+              <p className="text-[11.5px] text-ink-soft mt-0.5 line-clamp-2">{c.extensionRequest.justificacion}</p>
             </div>
           </>
         )}
@@ -381,8 +381,6 @@ function DecisionCard({
         {type === "criticos" && (
           <div className="flex items-center gap-1.5 flex-wrap">
             <Link to={`/seguridad/casos/${c.id}`}><Button size="sm" variant="danger"><Eye className="h-3.5 w-3.5" /> Ver expediente</Button></Link>
-            <Button variant="outline" size="sm" onClick={() => store.addTimelineComment(c.id, "Caso escalado a gerencia por prioridad crítica")}><Zap className="h-3.5 w-3.5" /> Escalar</Button>
-            <Button variant="ghost" size="sm" onClick={() => store.addTimelineComment(c.id, "Caso priorizado por Centro de Decisiones")}><Flag className="h-3.5 w-3.5" /> Priorizar</Button>
           </div>
         )}
         {type === "reaperturas" && (
@@ -394,7 +392,6 @@ function DecisionCard({
         {type === "alertas" && (
           <div className="flex items-center gap-1.5 flex-wrap">
             <Link to={`/seguridad/casos/${c.id}`}><Button variant="outline" size="sm"><Eye className="h-3.5 w-3.5" /> Ver expediente</Button></Link>
-            {isCritical && <Button variant="ghost" size="sm" onClick={() => store.addTimelineComment(c.id, "Alerta revisada desde Centro de Decisiones")}><Check className="h-3.5 w-3.5" /> Revisar</Button>}
           </div>
         )}
       </div>
