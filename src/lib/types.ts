@@ -2,7 +2,7 @@
 // Sistema de Gestión de Seguridad Operativa · Línea 1 del Metro de Lima
 // Campos alineados con planilla SOP oficial de Seguridad Operativa
 
-export type Role = "reportante" | "seguridad" | "jefe";
+export type Role = "reportante" | "seguridad" | "jefe" | "monitoreo";
 
 // ─── Matriz de Riesgo 5×5 (reemplaza prioridad) ───
 // Rojo (Riesgo Muy Alto): 1A, 1B, 1C, 2A, 2B → Inaceptable
