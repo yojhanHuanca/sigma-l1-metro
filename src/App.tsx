@@ -31,8 +31,16 @@ import { AdminRollingStock } from "@/pages/admin/AdminRollingStock";
 import { AdminCatalogs } from "@/pages/admin/AdminCatalogs";
 import { AdminConfig } from "@/pages/admin/AdminConfig";
 import { AdminAudit } from "@/pages/admin/AdminAudit";
+import { Dashboard as MonitoreoDashboard } from "@/pages/monitoreo/Dashboard";
+import { Registro } from "@/pages/monitoreo/Registro";
+import { FormularioManual } from "@/pages/monitoreo/FormularioManual";
+import { EventoDetalle } from "@/pages/monitoreo/EventoDetalle";
+import { EventoEditar } from "@/pages/monitoreo/EventoEditar";
+import { Historial } from "@/pages/monitoreo/Historial";
+import { Indicadores } from "@/pages/monitoreo/Indicadores";
+import { Reportes } from "@/pages/monitoreo/Reportes";
 
-function RequireRole({ role, children }: { role: "reportante" | "seguridad" | "jefe"; children: ReactNode }) {
+function RequireRole({ role, children }: { role: "reportante" | "seguridad" | "jefe" | "monitoreo"; children: ReactNode }) {
   const { role: current } = useStore();
   const location = useLocation();
   if (current !== role) {
@@ -75,6 +83,16 @@ export default function App() {
             <Route path="/seguridad/usuarios" element={<RequireRole role="seguridad"><UsersModule /></RequireRole>} />
             <Route path="/seguridad/notificaciones" element={<RequireRole role="seguridad"><SeguridadNotifications /></RequireRole>} />
             <Route path="/seguridad/perfil" element={<RequireRole role="seguridad"><Profile /></RequireRole>} />
+
+            {/* Monitoreo de Incidentes Operativos */}
+            <Route path="/monitoreo" element={<RequireRole role="monitoreo"><MonitoreoDashboard /></RequireRole>} />
+            <Route path="/monitoreo/nuevo" element={<RequireRole role="monitoreo"><Registro /></RequireRole>} />
+            <Route path="/monitoreo/nuevo/manual" element={<RequireRole role="monitoreo"><FormularioManual /></RequireRole>} />
+            <Route path="/monitoreo/eventos/:id" element={<RequireRole role="monitoreo"><EventoDetalle /></RequireRole>} />
+            <Route path="/monitoreo/eventos/:id/editar" element={<RequireRole role="monitoreo"><EventoEditar /></RequireRole>} />
+            <Route path="/monitoreo/historial" element={<RequireRole role="monitoreo"><Historial /></RequireRole>} />
+            <Route path="/monitoreo/indicadores" element={<RequireRole role="monitoreo"><Indicadores /></RequireRole>} />
+            <Route path="/monitoreo/reportes" element={<RequireRole role="monitoreo"><Reportes /></RequireRole>} />
 
             {/* Admin Center */}
             <Route path="/admin" element={<RequireRole role="seguridad"><RequireAdmin><AdminDashboard /></RequireAdmin></RequireRole>} />
